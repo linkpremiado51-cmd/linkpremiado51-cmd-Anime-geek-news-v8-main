@@ -14,7 +14,7 @@
     <p style="text-align:center; padding:100px; color:var(--text-muted); opacity:0.5;">SINCRONIZANDO ANÁLISES...</p>
   </div>
 
-  <div id="novo-pagination-modulo"></div>
+  <div id="novo-pagination-modulo" style="min-height: 150px; width: 100%; clear: both; display: block;"></div>
   
   <div id="toast-copiado">Link copiado!</div>
 
@@ -42,14 +42,12 @@
     (function() {
       console.log("Injetor: Forçando carregamento do módulo de análises...");
       const scriptId = 'script-analises-loader';
-      // Remove se já existir para evitar duplicatas em navegação repetida
       const oldScript = document.getElementById(scriptId);
       if (oldScript) oldScript.remove();
 
       const script = document.createElement('script');
       script.id = scriptId;
       script.type = 'module';
-      // Adicionamos um timestamp para evitar cache e garantir o recarregamento
       script.src = './modulos/modulos_analises/analises_principal.js?v=' + Date.now();
       document.body.appendChild(script);
     })();
@@ -81,8 +79,23 @@
     
     .subcat-tag { background: var(--bg); color: var(--text-main); padding: 6px 15px; border-radius: 50px; font-size: 0.85rem; font-weight: 700; display: inline-block; margin: 5px; border: 1px solid var(--border); }
     
-    .btn-paginacao-geek { background: var(--card-bg); border: 1px solid var(--border); color: var(--text-main); padding: 12px 25px; border-radius: 50px; cursor: pointer; font-weight: 700; transition: 0.3s; margin: 20px auto; display: block; }
-    .btn-paginacao-geek:hover { background: var(--text-main); color: var(--card-bg); }
+    /* Botão forçado com cor roxa para teste visual no mobile */
+    .btn-paginacao-geek { 
+      background: #8A2BE2 !important; 
+      color: #fff !important; 
+      border: none; 
+      padding: 15px 35px; 
+      border-radius: 50px; 
+      cursor: pointer; 
+      font-weight: 800; 
+      transition: 0.3s; 
+      margin: 30px auto; 
+      display: flex; 
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 5px 15px rgba(138, 43, 226, 0.4);
+    }
+    .btn-paginacao-geek:hover { transform: scale(1.05); background: #9D4EDD !important; }
 
     #toast-copiado { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 30px; opacity: 0; transition: 0.3s; z-index: 10000; pointer-events: none; }
     #toast-copiado.mostrar { opacity: 1; }
