@@ -1,6 +1,6 @@
 /**
- * modulos/modulos_analises/analises_principal.js
- * Sistema de Paginação Dinâmico e Independente
+ * ARQUIVO: modulos/modulos_analises/analises_principal.js
+ * Sistema de Paginação com Delegamento de Eventos (Blindagem contra Race Conditions)
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -24,6 +24,7 @@ const db = getFirestore(app);
 let todasAsAnalisesLocais = [];
 let noticiasExibidasCount = 5;
 
+// Objeto Global para funções acessíveis via HTML/Console
 window.analises = {
     ...Funcoes,
     
@@ -33,13 +34,26 @@ window.analises = {
     },
 
     /**
-     * Incrementa o contador de exibição de 5 em 5.
+     * Incrementa o contador de exibição.
      */
     carregarMaisNovo: () => {
         noticiasExibidasCount += 5;
         atualizarInterface();
     }
 };
+
+/**
+ * SOLUÇÃO DE DELEGAMENTO (Blindagem Total):
+ * Escuta cliques no documento inteiro. Se o alvo for o nosso botão, executa a função.
+ * Isso sobrevive mesmo se o navegacao.js destruir e recriar o DOM.
+ */
+document.addEventListener('click', (e) => {
+    const target = e.target.closest('#btn-carregar-mais');
+    if (target) {
+        e.preventDefault();
+        window.analises.carregarMaisNovo();
+    }
+});
 
 /**
  * Carrega o bloco editorial (título e descrição da capa)
@@ -68,27 +82,27 @@ async function carregarBlocoEditorial() {
 }
 
 /**
- * Renderiza as notícias e gerencia o botão de paginação através da Interface
+ * Renderiza as notícias e gerencia o botão de paginação
  */
 function atualizarInterface() {
-    // 1. Renderiza os cards no container principal
+    // 1. Renderiza os cards
     Interface.renderizarNoticias(todasAsAnalisesLocais, noticiasExibidasCount);
     
-    // 2. Gerencia a exibição do botão de paginação no placeholder fixo
+    // 2. Lógica de exibição do botão
     const temMaisParaCarregar = todasAsAnalisesLocais.length > noticiasExibidasCount;
     const btnContainer = document.getElementById('novo-pagination-modulo');
 
     if (temMaisParaCarregar) {
-        // Usa a função robusta do analises_interface.js para injetar o botão no placeholder
-        Interface.renderizarBotaoPaginacao(() => window.analises.carregarMaisNovo());
+        // Chamamos a interface apenas para injetar o HTML do botão no placeholder
+        Interface.renderizarBotaoPaginacao(); 
     } else {
-        // Apenas limpa o conteúdo do container fixo em vez de removê-lo
+        // Se não tem mais nada, limpa o placeholder
         if (btnContainer) btnContainer.innerHTML = '';
     }
 }
 
 /**
- * Sincroniza em tempo real com a coleção específica de "analises"
+ * Sincroniza em tempo real com o Firebase
  */
 function iniciarSyncNoticias() {
     onSnapshot(collection(db, "analises"), (snapshot) => {
@@ -109,6 +123,6 @@ function iniciarSyncNoticias() {
     });
 }
 
-// Inicialização
+// Inicialização do sistema
 carregarBlocoEditorial();
 iniciarSyncNoticias();
