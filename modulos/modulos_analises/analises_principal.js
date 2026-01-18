@@ -1,6 +1,6 @@
 /**
  * modulos/modulos_analises/analises_principal.js
- * Ajuste: Modularização com normalização de dados (estilo sistema antigo)
+ * Ajuste: Garantindo isolamento da coleção e visibilidade do botão de paginação
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -21,26 +21,25 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Lista local exclusiva para este módulo (evita misturar com window.noticiasFirebase)
-let todasAsAnalisesLocais = []; 
+// Lista local e exclusiva para evitar conflitos com o sistema antigo
+let todasAsAnalisesLocais = [];
 let noticiasExibidasCount = 5;
 
 /**
- * Imita a lógica de normalização do sistema antigo (config-firebase.js)
- * Garante que vídeos e imagens funcionem no novo formato modular.
+ * Normalização seguindo o padrão que você tinha no config-firebase.js
  */
-function normalizarParaAnalise(docSnapshot) {
-    const data = docSnapshot.data();
-    
-    // Formatação do Vídeo Principal (Lógica do sistema antigo)
+function normalizarDocumento(docSnap) {
+    const data = docSnap.data();
     let videoUrl = data.videoPrincipal || "";
+    
+    // Tratamento de link do YouTube (Sistema Antigo)
     if (videoUrl.includes("watch?v=")) {
-        videoUrl = videoUrl.replace("watch?v=", "embed/") + "?autoplay=1&mute=1&modestbranding=1";
+        videoUrl = videoUrl.replace("watch?v=", "embed/") + "?autoplay=1&mute=1";
     }
 
     return {
-        id: docSnapshot.id,
-        origem: 'analises', // Força a origem para não misturar coleções
+        id: docSnap.id,
+        origem: 'analises',
         ...data,
         videoPrincipal: videoUrl
     };
@@ -61,7 +60,9 @@ window.analises = {
 
     carregarMais: () => {
         noticiasExibidasCount += 5;
+        // Renderiza novamente com o novo limite
         Interface.renderizarNoticias(todasAsAnalisesLocais, noticiasExibidasCount);
+        // Re-vincula o evento no botão que foi re-renderizado ou atualizado
         vincularEventosInterface();
     }
 };
@@ -71,7 +72,7 @@ async function carregarBlocoEditorial() {
     try {
         const snap = await getDoc(blocoRef);
         const container = document.getElementById('subcategorias-container');
-        if (!container || !snap.exists()) return;
+        if (!container || !snap.exists()) return; 
 
         const data = snap.data();
         document.getElementById('capa-titulo').textContent = data.titulo || "Análises";
@@ -86,19 +87,19 @@ async function carregarBlocoEditorial() {
 }
 
 function iniciarSyncNoticias() {
+    // Alvo estrito na coleção de análises
     const colRef = collection(db, "analises");
     
     onSnapshot(colRef, (snapshot) => {
-        // Mapeia usando a nova função de normalização baseada no seu config-firebase antigo
+        // Filtramos e normalizamos aqui para garantir que nada de fora entre
         todasAsAnalisesLocais = snapshot.docs
-            .map(doc => normalizarParaAnalise(doc))
+            .map(doc => normalizarDocumento(doc))
             .sort((a, b) => {
                 const dataA = a.lastUpdate ? new Date(a.lastUpdate) : 0;
                 const dataB = b.lastUpdate ? new Date(b.lastUpdate) : 0;
                 return dataB - dataA;
             });
         
-        // Renderiza apenas o que foi filtrado e normalizado localmente
         Interface.renderizarNoticias(todasAsAnalisesLocais, noticiasExibidasCount);
         vincularEventosInterface();
     });
@@ -106,7 +107,19 @@ function iniciarSyncNoticias() {
 
 function vincularEventosInterface() {
     const btnMais = document.getElementById('btn-carregar-mais');
+    const wrapper = document.getElementById('pagination-control');
+
+    // Força a visibilidade do wrapper se houver mais itens que o limite
+    if (wrapper) {
+        if (todasAsAnalisesLocais.length > noticiasExibidasCount) {
+            wrapper.style.display = 'block';
+        } else {
+            wrapper.style.display = 'none';
+        }
+    }
+
     if (btnMais) {
+        btnMais.onclick = null; // Limpa duplicatas
         btnMais.onclick = (e) => {
             e.preventDefault();
             window.analises.carregarMais();
