@@ -1,6 +1,6 @@
 /**
  * modulos/modulos_analises/analises_principal.js
- * Ponto de entrada: Gerencia dados, Firebase e eventos globais
+ * Editado para integração total com AniGeekNews SPA
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -8,7 +8,7 @@ import { getFirestore, collection, onSnapshot, doc, getDoc } from "https://www.g
 import * as Funcoes from './analises_funcoes.js';
 import * as Interface from './analises_interface.js';
 
-// Configuração Firebase
+// Reutilizamos a config do Firebase (Poderia vir do config-firebase.js global também)
 const firebaseConfig = {
     apiKey: "AIzaSyBC_ad4X9OwCHKvcG_pNQkKEl76Zw2tu6o",
     authDomain: "anigeeknews.firebaseapp.com",
@@ -22,54 +22,49 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Estado da Aplicação
 let todasAsNoticias = [];
 let noticiasExibidasCount = 5;
 
 /**
- * Expõe funções para o objeto window (compatibilidade com HTML onclick)
+ * Expõe para o window usando o namespace 'analises'
+ * Agora integrado com o Modal Global do seu modal-manager.js
  */
 window.analises = {
     copiarLink: Funcoes.copiarLink,
     compartilhar: Funcoes.compartilharNoticia,
     trocarVideo: Funcoes.trocarVideo,
-    fecharModal: Funcoes.fecharModalPrincipal,
-    toggleComentarios: Funcoes.toggleComentarios,
+    
+    // Agora chama o modal global do seu sistema
+    abrirNoModalGlobal: (id) => {
+        const noticia = todasAsNoticias.find(n => n.id === id);
+        if (noticia && window.abrirModalNoticia) {
+            window.abrirModalNoticia(noticia);
+        }
+    },
+
     carregarMais: () => {
         noticiasExibidasCount += 5;
         Interface.renderizarNoticias(todasAsNoticias, noticiasExibidasCount);
     }
 };
 
-// Aliases para manter compatibilidade direta com nomes antigos se necessário
-window.fecharModal = window.analises.fecharModal;
-window.fecharComentarios = () => window.analises.toggleComentarios(false);
-
 /**
- * Verifica se existe um ID na URL para abrir o modal automaticamente
- */
-function verificarDeepLink() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const id = urlParams.get('id');
-    if (id && todasAsNoticias.length > 0) {
-        const noticia = todasAsNoticias.find(n => n.id === id);
-        if (noticia) Interface.abrirNoticiaEmModal(noticia);
-    }
-}
-
-/**
- * Carrega o cabeçalho editorial personalizado do Firebase
+ * Carrega o cabeçalho editorial personalizado
  */
 async function carregarBlocoEditorial() {
     const blocoRef = doc(db, "sobre_nos", "analises_bloco_1");
     try {
         const snap = await getDoc(blocoRef);
         const container = document.getElementById('subcategorias-container');
-        
+        if (!container) return; 
+
         if (snap.exists()) {
             const data = snap.data();
-            document.getElementById('capa-titulo').textContent = data.titulo?.trim();
-            document.getElementById('capa-descricao').textContent = data.descricao?.trim();
+            const tituloEl = document.getElementById('capa-titulo');
+            const descEl = document.getElementById('capa-descricao');
+            
+            if (tituloEl) tituloEl.textContent = data.titulo?.trim();
+            if (descEl) descEl.textContent = data.descricao?.trim();
 
             if (data.subcategorias) {
                 container.innerHTML = data.subcategorias.map(tag => 
@@ -83,31 +78,35 @@ async function carregarBlocoEditorial() {
 }
 
 /**
- * Escuta mudanças no Firestore em tempo real
+ * Escuta mudanças no Firestore (Coleção: analises)
  */
 function iniciarSyncNoticias() {
     const q = collection(db, "analises");
     onSnapshot(q, (snapshot) => {
         const noticiasFB = [];
         snapshot.forEach((doc) => {
-            noticiasFB.push({ id: doc.id, ...doc.data() });
+            // Normalização básica para garantir que o modal global entenda a origem
+            const data = doc.data();
+            noticiasFB.push({ 
+                id: doc.id, 
+                origem: 'analises', // Importante para o seu modal-manager.js
+                ...data 
+            });
         });
         
-        // Ordena por data (mais recente primeiro)
         todasAsNoticias = noticiasFB.sort((a, b) => (b.data || 0) - (a.data || 0));
         
+        // Renderiza na seção 'analises.html'
         Interface.renderizarNoticias(todasAsNoticias, noticiasExibidasCount);
-        verificarDeepLink();
     });
 }
 
-// Inicialização
-document.addEventListener('DOMContentLoaded', () => {
-    carregarBlocoEditorial();
-    iniciarSyncNoticias();
-    
-    // Vincula o botão "Carregar Mais"
-    const btnMais = document.getElementById('btn-carregar-mais');
-    if (btnMais) btnMais.onclick = window.analises.carregarMais;
-});
+// INICIALIZAÇÃO IMEDIATA (Essencial para o seu sistema de fetch)
+carregarBlocoEditorial();
+iniciarSyncNoticias();
 
+// Vincula o botão "Carregar Mais" se ele existir no DOM
+const btnMais = document.getElementById('btn-carregar-mais');
+if (btnMais) {
+    btnMais.onclick = () => window.analises.carregarMais();
+}
