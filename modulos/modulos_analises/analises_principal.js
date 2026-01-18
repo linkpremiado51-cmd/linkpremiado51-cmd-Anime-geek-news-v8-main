@@ -1,10 +1,10 @@
 /**
  * modulos/modulos_analises/analises_principal.js
- * Correção: Filtro de coleção e persistência de eventos do botão
+ * Correção: Busca simplificada para garantir exibição das notícias
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, getDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import * as Funcoes from './analises_funcoes.js';
 import * as Interface from './analises_interface.js';
 
@@ -40,7 +40,6 @@ window.analises = {
     carregarMais: () => {
         noticiasExibidasCount += 5;
         Interface.renderizarNoticias(todasAsNoticias, noticiasExibidasCount);
-        // Re-vincula após renderizar para garantir que o botão atualizado funcione
         vincularEventosInterface();
     }
 };
@@ -70,17 +69,24 @@ async function carregarBlocoEditorial() {
 }
 
 function iniciarSyncNoticias() {
-    // query explícita para garantir que pegamos APENAS a coleção 'analises'
-    const q = query(collection(db, "analises"), orderBy("data", "desc"));
+    // Busca a coleção sem query restritiva para garantir que os dados cheguem
+    const colRef = collection(db, "analises");
     
-    onSnapshot(q, (snapshot) => {
-        todasAsNoticias = []; // Limpa para evitar duplicatas de outras execuções
+    onSnapshot(colRef, (snapshot) => {
+        const noticiasFB = [];
         snapshot.forEach((doc) => {
-            todasAsNoticias.push({ 
+            noticiasFB.push({ 
                 id: doc.id, 
                 origem: 'analises', 
                 ...doc.data() 
             });
+        });
+        
+        // Ordenação manual para evitar erro de índice do Firebase
+        todasAsNoticias = noticiasFB.sort((a, b) => {
+            const dataA = a.data || 0;
+            const dataB = b.data || 0;
+            return dataB - dataA;
         });
         
         Interface.renderizarNoticias(todasAsNoticias, noticiasExibidasCount);
@@ -88,10 +94,6 @@ function iniciarSyncNoticias() {
     });
 }
 
-/**
- * Função de segurança para garantir que o botão de carregar mais
- * sempre funcione, mesmo após o fetch do HTML.
- */
 function vincularEventosInterface() {
     const btnMais = document.getElementById('btn-carregar-mais');
     if (btnMais) {
@@ -102,8 +104,6 @@ function vincularEventosInterface() {
     }
 }
 
-// Inicialização com atraso curto para garantir que o DOM injetado via fetch esteja pronto
-setTimeout(() => {
-    carregarBlocoEditorial();
-    iniciarSyncNoticias();
-}, 100);
+// Inicialização imediata
+carregarBlocoEditorial();
+iniciarSyncNoticias();
