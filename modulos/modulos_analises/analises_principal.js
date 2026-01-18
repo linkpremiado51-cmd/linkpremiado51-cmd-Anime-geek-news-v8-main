@@ -34,7 +34,6 @@ window.analises = {
 
     /**
      * Incrementa o contador de exibição de 5 em 5.
-     * Se houver menos de 5 restantes, mostrará todas as disponíveis.
      */
     carregarMaisNovo: () => {
         noticiasExibidasCount += 5;
@@ -69,27 +68,22 @@ async function carregarBlocoEditorial() {
 }
 
 /**
- * Renderiza as notícias e gerencia o botão de paginação
+ * Renderiza as notícias e gerencia o botão de paginação através da Interface
  */
 function atualizarInterface() {
-    // 1. Renderiza os cards respeitando o limite definido em noticiasExibidasCount
+    // 1. Renderiza os cards no container principal
     Interface.renderizarNoticias(todasAsAnalisesLocais, noticiasExibidasCount);
     
-    // 2. Lógica do Botão Dinâmico
-    const container = document.getElementById('container-principal');
-    if (!container) return;
+    // 2. Gerencia a exibição do botão de paginação
+    const temMaisParaCarregar = todasAsAnalisesLocais.length > noticiasExibidasCount;
 
-    // O botão só aparece se o total de notícias local for maior que a quantidade exibida
-    if (todasAsAnalisesLocais.length > noticiasExibidasCount) {
-        const btnHtml = `
-            <div id="novo-pagination-modulo" style="text-align: center; padding: 40px 0; width: 100%;">
-                <button class="btn-paginacao-geek" onclick="window.analises.carregarMaisNovo()">
-                    <i class="fa-solid fa-chevron-down"></i> Carregar Mais Análises
-                </button>
-            </div>
-        `;
-        // Insere o botão ao final do container principal para carregar o restante (seja 1 ou 5 itens)
-        container.insertAdjacentHTML('beforeend', btnHtml);
+    if (temMaisParaCarregar) {
+        // Usa a função robusta do analises_interface.js
+        Interface.renderizarBotaoPaginacao(() => window.analises.carregarMaisNovo());
+    } else {
+        // Remove o botão caso não haja mais itens
+        const btnContainer = document.getElementById('novo-pagination-modulo');
+        if (btnContainer) btnContainer.remove();
     }
 }
 
@@ -103,6 +97,7 @@ function iniciarSyncNoticias() {
                 id: doc.id, 
                 origem: 'analises', 
                 ...doc.data(),
+                // Garante que o link do YouTube seja compatível com iframe
                 videoPrincipal: doc.data().videoPrincipal?.replace("watch?v=", "embed/") || ""
             }))
             .sort((a, b) => {
