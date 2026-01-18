@@ -1,6 +1,6 @@
 /**
  * ARQUIVO: modulos/modulos_analises/analises_principal.js
- * Sistema com Logs Visuais para Mobile e Busca Persistente
+ * Sistema com Logs Visuais e Botão de Paginação Forçado
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -17,7 +17,7 @@ function criarPainelLogs() {
     document.body.appendChild(panel);
 }
 
-function logVisual(msg) {
+window.logVisual = function(msg) {
     const panel = document.getElementById('debug-mobile');
     if (panel) {
         const line = document.createElement('div');
@@ -25,7 +25,7 @@ function logVisual(msg) {
         panel.prepend(line);
     }
     console.log(msg);
-}
+};
 // --------------------------------------------
 
 const firebaseConfig = {
@@ -51,9 +51,15 @@ window.analises = {
         if (noticia && window.abrirModalNoticia) window.abrirModalNoticia(noticia);
     },
     carregarMaisNovo: () => {
-        logVisual("Botão clicado! Carregando +5...");
-        noticiasExibidasCount += 5;
-        atualizarInterface();
+        const totalNoBanco = todasAsAnalisesLocais.length;
+        
+        if (noticiasExibidasCount >= totalNoBanco) {
+            window.logVisual(`Fim da lista! (Mostrando ${totalNoBanco} de ${totalNoBanco})`);
+        } else {
+            noticiasExibidasCount += 5;
+            window.logVisual(`Expandindo limite para ${noticiasExibidasCount}...`);
+            atualizarInterface();
+        }
     }
 };
 
@@ -67,7 +73,7 @@ document.addEventListener('click', (e) => {
 });
 
 async function carregarBlocoEditorial() {
-    logVisual("Buscando dados editoriais...");
+    window.logVisual("Buscando dados editoriais...");
     const blocoRef = doc(db, "sobre_nos", "analises_bloco_1");
     try {
         const snap = await getDoc(blocoRef);
@@ -75,41 +81,40 @@ async function carregarBlocoEditorial() {
             const data = snap.data();
             const tituloEl = document.getElementById('capa-titulo');
             if (tituloEl) tituloEl.textContent = data.titulo || "Análises";
-            logVisual("Editorial carregado.");
+            window.logVisual("Editorial carregado.");
         }
     } catch (error) { 
-        logVisual("Erro no Firebase Editorial."); 
+        window.logVisual("Erro no Firebase Editorial."); 
     }
 }
 
 /**
- * Tenta encontrar o container do botão repetidamente
+ * Tenta encontrar o container e força a injeção do botão
  */
 function forcarBotao(tentativas = 0) {
     const btnContainer = document.getElementById('novo-pagination-modulo');
-    const temMais = todasAsAnalisesLocais.length > noticiasExibidasCount;
 
     if (btnContainer) {
-        logVisual("Container do botão ENCONTRADO!");
-        if (temMais) Interface.renderizarBotaoPaginacao();
+        window.logVisual("Container achado. Injetando botão...");
+        Interface.renderizarBotaoPaginacao();
     } else if (tentativas < 10) {
-        logVisual(`Container não achado. Tentativa ${tentativas + 1}/10...`);
+        window.logVisual(`Aguardando container... (${tentativas + 1}/10)`);
         setTimeout(() => forcarBotao(tentativas + 1), 1000);
     } else {
-        logVisual("ERRO: Container 'novo-pagination-modulo' não apareceu no DOM.");
+        window.logVisual("ERRO: Container não apareceu.");
     }
 }
 
 function atualizarInterface() {
-    logVisual(`Renderizando ${noticiasExibidasCount} notícias...`);
+    window.logVisual(`Renderizando até ${noticiasExibidasCount} itens...`);
     Interface.renderizarNoticias(todasAsAnalisesLocais, noticiasExibidasCount);
     forcarBotao();
 }
 
 function iniciarSyncNoticias() {
-    logVisual("Iniciando Sync com Firebase...");
+    window.logVisual("Sincronizando banco...");
     onSnapshot(collection(db, "analises"), (snapshot) => {
-        logVisual(`${snapshot.size} análises recebidas.`);
+        window.logVisual(`${snapshot.size} itens no Firebase.`);
         todasAsAnalisesLocais = snapshot.docs
             .map(doc => ({ 
                 id: doc.id, 
@@ -117,7 +122,11 @@ function iniciarSyncNoticias() {
                 ...doc.data(),
                 videoPrincipal: doc.data().videoPrincipal?.replace("watch?v=", "embed/") || ""
             }))
-            .sort((a, b) => (b.lastUpdate || 0) - (a.lastUpdate || 0));
+            .sort((a, b) => {
+                const dataA = a.lastUpdate ? new Date(a.lastUpdate).getTime() : 0;
+                const dataB = b.lastUpdate ? new Date(b.lastUpdate).getTime() : 0;
+                return dataB - dataA;
+            });
         
         atualizarInterface();
     });
@@ -125,6 +134,6 @@ function iniciarSyncNoticias() {
 
 // Inicialização
 criarPainelLogs();
-logVisual("Sistema Iniciado.");
+window.logVisual("Sistema Iniciado.");
 carregarBlocoEditorial();
 iniciarSyncNoticias();
