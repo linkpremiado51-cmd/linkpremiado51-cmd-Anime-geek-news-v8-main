@@ -1,86 +1,131 @@
-<div class="destaque-wrapper">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+/**
+ * modulos/modulos_analises/analises_principal.js
+ * Ajuste: Garantindo isolamento da coleção e visibilidade do botão de paginação
+ */
 
-  <div id="capa-editorial" class="capa-editorial-block">
-    <div class="capa-content-inner">
-      <h1 id="capa-titulo" class="capa-title">Análises Profundas</h1>
-      <p id="capa-descricao" class="capa-desc">Carregando editorial...</p>
-      <div class="subcategorias-tags" id="subcategorias-container"></div>
-    </div>
-  </div>
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import * as Funcoes from './analises_funcoes.js';
+import * as Interface from './analises_interface.js';
 
-  <div id="container-principal">
-    <p style="text-align:center; padding:100px; color:var(--text-muted); opacity:0.5;">SINCRONIZANDO ANÁLISES...</p>
-  </div>
-  
-  <div id="pagination-control" style="text-align: center; padding: 30px; display: none;">
-      <button id="btn-carregar-mais" class="btn-paginacao-geek">
-          <i class="fa-solid fa-chevron-down"></i> Carregar mais conteúdos
-      </button>
-  </div>
+const firebaseConfig = {
+    apiKey: "AIzaSyBC_ad4X9OwCHKvcG_pNQkKEl76Zw2tu6o",
+    authDomain: "anigeeknews.firebaseapp.com",
+    projectId: "anigeeknews",
+    storageBucket: "anigeeknews.firebasestorage.app",
+    messagingSenderId: "769322939926",
+    appId: "1:769322939926:web:6eb91a96a3f74670882737",
+    measurementId: "G-G5T8CCRGZT"
+};
 
-  <div id="toast-copiado">Link copiado!</div>
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-  <div id="modal-comentarios-geek" class="modal-geek-overlay">
-    <div class="modal-geek-content">
-      <div class="modal-geek-header">
-        <div class="header-main-title">
-          <i class="fa-solid fa-comments"></i>
-          <span>Comunidade <small>Discussão Ativa</small></span>
-        </div>
-        <button onclick="window.analises.toggleComentarios(false)" class="btn-geek-close">×</button>
-      </div>
-      <div class="modal-geek-body" id="flow-comentarios"></div>
-      <div class="modal-geek-footer">
-        <div class="input-wrapper-geek">
-          <div class="mini-my-avatar" style="background: #333;">Eu</div>
-          <input type="text" placeholder="Adicione um comentário..." id="input-comentario-real">
-          <button class="btn-send-geek"><i class="fa-solid fa-paper-plane"></i></button>
-        </div>
-      </div>
-    </div>
-  </div>
+// Lista local e exclusiva para evitar conflitos com o sistema antigo
+let todasAsAnalisesLocais = [];
+let noticiasExibidasCount = 5;
 
-  <script type="module" src="./modulos/modulos_analises/analises_principal.js"></script>
-
-  <style>
-    :root {
-      --card-bg: #ffffff;
-      --border: #e0e0e0;
-      --bg: #f8f9fa;
-      --text-main: #121212;
-      --text-muted: #555;
-      --container-w: 1200px;
-      --radius: 12px;
+/**
+ * Normalização seguindo o padrão que você tinha no config-firebase.js
+ */
+function normalizarDocumento(docSnap) {
+    const data = docSnap.data();
+    let videoUrl = data.videoPrincipal || "";
+    
+    // Tratamento de link do YouTube (Sistema Antigo)
+    if (videoUrl.includes("watch?v=")) {
+        videoUrl = videoUrl.replace("watch?v=", "embed/") + "?autoplay=1&mute=1";
     }
 
-    body.dark-mode {
-      --card-bg: #1a1a1a;
-      --border: #333;
-      --bg: #252525;
-      --text-main: #fff;
-      --text-muted: #bbb;
+    return {
+        id: docSnap.id,
+        origem: 'analises',
+        ...data,
+        videoPrincipal: videoUrl
+    };
+}
+
+window.analises = {
+    copiarLink: Funcoes.copiarLink,
+    compartilhar: Funcoes.compartilharNoticia,
+    trocarVideo: Funcoes.trocarVideo,
+    toggleComentarios: Funcoes.toggleComentarios,
+    
+    abrirNoModalGlobal: (id) => {
+        const noticia = todasAsAnalisesLocais.find(n => n.id === id);
+        if (noticia && window.abrirModalNoticia) {
+            window.abrirModalNoticia(noticia);
+        }
+    },
+
+    carregarMais: () => {
+        noticiasExibidasCount += 5;
+        // Renderiza novamente com o novo limite
+        Interface.renderizarNoticias(todasAsAnalisesLocais, noticiasExibidasCount);
+        // Re-vincula o evento no botão que foi re-renderizado ou atualizado
+        vincularEventosInterface();
+    }
+};
+
+async function carregarBlocoEditorial() {
+    const blocoRef = doc(db, "sobre_nos", "analises_bloco_1");
+    try {
+        const snap = await getDoc(blocoRef);
+        const container = document.getElementById('subcategorias-container');
+        if (!container || !snap.exists()) return; 
+
+        const data = snap.data();
+        document.getElementById('capa-titulo').textContent = data.titulo || "Análises";
+        document.getElementById('capa-descricao').textContent = data.descricao || "";
+
+        if (data.subcategorias) {
+            container.innerHTML = data.subcategorias.map(tag => 
+                `<span class="subcat-tag">${tag}</span>`
+            ).join('');
+        }
+    } catch (error) { console.error("Erro editorial:", error); }
+}
+
+function iniciarSyncNoticias() {
+    // Alvo estrito na coleção de análises
+    const colRef = collection(db, "analises");
+    
+    onSnapshot(colRef, (snapshot) => {
+        // Filtramos e normalizamos aqui para garantir que nada de fora entre
+        todasAsAnalisesLocais = snapshot.docs
+            .map(doc => normalizarDocumento(doc))
+            .sort((a, b) => {
+                const dataA = a.lastUpdate ? new Date(a.lastUpdate) : 0;
+                const dataB = b.lastUpdate ? new Date(b.lastUpdate) : 0;
+                return dataB - dataA;
+            });
+        
+        Interface.renderizarNoticias(todasAsAnalisesLocais, noticiasExibidasCount);
+        vincularEventosInterface();
+    });
+}
+
+function vincularEventosInterface() {
+    const btnMais = document.getElementById('btn-carregar-mais');
+    const wrapper = document.getElementById('pagination-control');
+
+    // Força a visibilidade do wrapper se houver mais itens que o limite
+    if (wrapper) {
+        if (todasAsAnalisesLocais.length > noticiasExibidasCount) {
+            wrapper.style.display = 'block';
+        } else {
+            wrapper.style.display = 'none';
+        }
     }
 
-    /* Estilos de Interface */
-    .capa-editorial-block { width: 100%; padding: 0 16px; margin: 0 auto 32px auto; max-width: var(--container-w); }
-    .capa-content-inner { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 30px; text-align: center; }
-    .capa-title { font-size: clamp(1.8rem, 5vw, 2.5rem); font-weight: 900; color: var(--text-main); margin-bottom: 15px; }
-    .capa-desc { max-width: 700px; margin: 0 auto 20px auto; color: var(--text-muted); line-height: 1.6; }
-    
-    .subcat-tag { background: var(--bg); color: var(--text-main); padding: 6px 15px; border-radius: 50px; font-size: 0.85rem; font-weight: 700; display: inline-block; margin: 5px; border: 1px solid var(--border); }
-    
-    .btn-paginacao-geek { background: var(--card-bg); border: 1px solid var(--border); color: var(--text-main); padding: 12px 25px; border-radius: 50px; cursor: pointer; font-weight: 700; transition: 0.3s; }
-    .btn-paginacao-geek:hover { background: var(--text-main); color: var(--card-bg); }
+    if (btnMais) {
+        btnMais.onclick = null; // Limpa duplicatas
+        btnMais.onclick = (e) => {
+            e.preventDefault();
+            window.analises.carregarMais();
+        };
+    }
+}
 
-    /* Toast */
-    #toast-copiado { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 30px; opacity: 0; transition: 0.3s; z-index: 10000; pointer-events: none; }
-    #toast-copiado.mostrar { opacity: 1; }
-
-    /* Estilos do Feed de Análises (Ajustados para o seu layout) */
-    .destaque-secao { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 40px; overflow: hidden; max-width: var(--container-w); margin-left: auto; margin-right: auto; }
-    .destaque-padding { padding: 25px; }
-    .destaque-titulo { font-size: 1.8rem; font-weight: 800; margin: 10px 0; color: var(--text-main); line-height: 1.2; }
-    .destaque-media iframe { width: 100%; aspect-ratio: 16/9; border: none; display: block; }
-  </style>
-</div>
+carregarBlocoEditorial();
+iniciarSyncNoticias();
