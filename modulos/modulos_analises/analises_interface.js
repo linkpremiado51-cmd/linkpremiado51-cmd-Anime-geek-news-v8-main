@@ -1,6 +1,6 @@
 /**
  * modulos/modulos_analises/analises_interface.js
- * Interface Modularizada com melhorias visuais e suporte ao botão de paginação dinâmico.
+ * Interface Modularizada com suporte garantido ao botão de paginação.
  */
 
 import { limparEspacos } from './analises_funcoes.js';
@@ -35,15 +35,37 @@ function criarRelacionadosHtml(newsId, relacionados) {
 }
 
 /**
+ * Renderiza o botão de "Carregar Mais" no local correto
+ */
+export function renderizarBotaoPaginacao(callback) {
+    const container = document.getElementById('container-principal');
+    if (!container) return;
+
+    // Verifica se já existe um container de paginação para não duplicar
+    let paginationWrapper = document.getElementById('novo-pagination-modulo');
+    if (!paginationWrapper) {
+        paginationWrapper = document.createElement('div');
+        paginationWrapper.id = 'novo-pagination-modulo';
+        container.after(paginationWrapper); // Insere logo após o container de notícias
+    }
+
+    paginationWrapper.innerHTML = `
+        <button class="btn-paginacao-geek" id="btn-carregar-mais">
+            <i class="fa-solid fa-plus"></i>
+            <span>Carregar mais análises</span>
+        </button>
+    `;
+
+    const btn = paginationWrapper.querySelector('#btn-carregar-mais');
+    if (btn) btn.onclick = callback;
+}
+
+/**
  * Renderiza a lista de notícias no container principal
  */
 export function renderizarNoticias(noticias, limite) {
     const container = document.getElementById('container-principal');
-    
     if (!container) return;
-
-    // Limpa o container para nova renderização (o principal.js injeta o botão após isso)
-    container.innerHTML = '';
 
     const baseUrl = window.location.origin + window.location.pathname;
     const listaParaExibir = noticias.slice(0, limite);
@@ -57,6 +79,7 @@ export function renderizarNoticias(noticias, limite) {
         return;
     }
 
+    // Renderiza os artigos
     container.innerHTML = listaParaExibir.map(news => {
         const shareUrl = `${baseUrl}?id=${encodeURIComponent(news.id)}`;
         const viewCount = news.views || Math.floor(Math.random() * 900) + 100 + "K";
