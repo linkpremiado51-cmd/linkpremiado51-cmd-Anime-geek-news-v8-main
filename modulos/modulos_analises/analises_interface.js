@@ -1,9 +1,9 @@
 /**
  * modulos/modulos_analises/analises_interface.js
- * Restaurado: Versão estável com correção apenas na visibilidade do botão
+ * Ajuste: Remoção de referências antigas de paginação para suporte ao novo botão dinâmico
  */
 
-import { copiarLink, compartilharNoticia, trocarVideo, toggleComentarios, limparEspacos } from './analises_funcoes.js';
+import { limparEspacos } from './analises_funcoes.js';
 
 /**
  * Cria o HTML da ficha técnica (grid de informações)
@@ -36,11 +36,10 @@ function criarRelacionadosHtml(newsId, relacionados) {
  */
 export function renderizarNoticias(noticias, limite) {
     const container = document.getElementById('container-principal');
-    const paginacaoWrapper = document.getElementById('pagination-control');
     
     if (!container) return;
 
-    // Limpa o container antes de renderizar
+    // Limpa o container (o novo botão será reinjetado pelo principal.js após esta execução)
     container.innerHTML = '';
 
     const baseUrl = window.location.origin + window.location.pathname;
@@ -48,7 +47,6 @@ export function renderizarNoticias(noticias, limite) {
 
     if (listaParaExibir.length === 0) {
         container.innerHTML = '<p style="text-align:center; padding:50px; opacity:0.5;">Nenhuma análise encontrada nesta categoria.</p>';
-        if (paginacaoWrapper) paginacaoWrapper.style.display = 'none';
         return;
     }
 
@@ -108,13 +106,4 @@ export function renderizarNoticias(noticias, limite) {
         </article>
       `;
     }).join('');
-
-    // Correção da visibilidade: Se tiver mais notícias no total do que o limite atual, mostra o botão
-    if (paginacaoWrapper) {
-        if (noticias.length > limite) {
-            paginacaoWrapper.style.display = 'block';
-        } else {
-            paginacaoWrapper.style.display = 'none';
-        }
-    }
 }
