@@ -1,6 +1,6 @@
 /**
  * modulos/modulos_analises/analises_interface.js
- * Interface Modularizada com suporte garantido ao botão de paginação.
+ * Interface Modularizada com injeção em placeholder fixo para evitar conflitos de navegação.
  */
 
 import { limparEspacos } from './analises_funcoes.js';
@@ -35,25 +35,23 @@ function criarRelacionadosHtml(newsId, relacionados) {
 }
 
 /**
- * Renderiza o botão de "Carregar Mais" no local correto
+ * Renderiza o botão de "Carregar Mais" no placeholder fixo do HTML
  */
 export function renderizarBotaoPaginacao(callback) {
-    const container = document.getElementById('container-principal');
-    if (!container) return;
+    // Busca o placeholder que adicionamos manualmente no analises.html
+    const paginationWrapper = document.getElementById('novo-pagination-modulo');
+    
+    // Se o placeholder não existir (ex: erro de carregamento da seção), encerra
+    if (!paginationWrapper) return;
 
-    // Verifica se já existe um container de paginação para não duplicar
-    let paginationWrapper = document.getElementById('novo-pagination-modulo');
-    if (!paginationWrapper) {
-        paginationWrapper = document.createElement('div');
-        paginationWrapper.id = 'novo-pagination-modulo';
-        container.after(paginationWrapper); // Insere logo após o container de notícias
-    }
-
+    // Injeta o botão com o estilo Geek
     paginationWrapper.innerHTML = `
-        <button class="btn-paginacao-geek" id="btn-carregar-mais">
-            <i class="fa-solid fa-plus"></i>
-            <span>Carregar mais análises</span>
-        </button>
+        <div style="text-align: center; padding: 20px 0 60px 0; width: 100%;">
+            <button class="btn-paginacao-geek" id="btn-carregar-mais">
+                <i class="fa-solid fa-chevron-down"></i>
+                <span>Carregar mais análises</span>
+            </button>
+        </div>
     `;
 
     const btn = paginationWrapper.querySelector('#btn-carregar-mais');
