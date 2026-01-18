@@ -32,14 +32,19 @@ window.analises = {
         if (noticia && window.abrirModalNoticia) window.abrirModalNoticia(noticia);
     },
 
-    // Função que gerencia o novo botão dinâmico
+    /**
+     * Incrementa o contador de exibição de 5 em 5.
+     * Se houver menos de 5 restantes, mostrará todas as disponíveis.
+     */
     carregarMaisNovo: () => {
         noticiasExibidasCount += 5;
         atualizarInterface();
     }
 };
 
-// Restaurado: Carrega o título e descrição da capa
+/**
+ * Carrega o bloco editorial (título e descrição da capa)
+ */
 async function carregarBlocoEditorial() {
     const blocoRef = doc(db, "sobre_nos", "analises_bloco_1");
     try {
@@ -58,17 +63,23 @@ async function carregarBlocoEditorial() {
                 ).join('');
             }
         }
-    } catch (error) { console.error("Erro editorial:", error); }
+    } catch (error) { 
+        console.error("Erro editorial:", error); 
+    }
 }
 
+/**
+ * Renderiza as notícias e gerencia o botão de paginação
+ */
 function atualizarInterface() {
-    // 1. Renderiza os cards (Interface.js limpa o container automaticamente)
+    // 1. Renderiza os cards respeitando o limite definido em noticiasExibidasCount
     Interface.renderizarNoticias(todasAsAnalisesLocais, noticiasExibidasCount);
     
-    // 2. Lógica do Novo Botão Dinâmico
+    // 2. Lógica do Botão Dinâmico
     const container = document.getElementById('container-principal');
     if (!container) return;
 
+    // O botão só aparece se o total de notícias local for maior que a quantidade exibida
     if (todasAsAnalisesLocais.length > noticiasExibidasCount) {
         const btnHtml = `
             <div id="novo-pagination-modulo" style="text-align: center; padding: 40px 0; width: 100%;">
@@ -77,11 +88,14 @@ function atualizarInterface() {
                 </button>
             </div>
         `;
-        // Insere o botão logo após a última notícia renderizada
+        // Insere o botão ao final do container principal para carregar o restante (seja 1 ou 5 itens)
         container.insertAdjacentHTML('beforeend', btnHtml);
     }
 }
 
+/**
+ * Sincroniza em tempo real com a coleção específica de "analises"
+ */
 function iniciarSyncNoticias() {
     onSnapshot(collection(db, "analises"), (snapshot) => {
         todasAsAnalisesLocais = snapshot.docs
@@ -89,7 +103,6 @@ function iniciarSyncNoticias() {
                 id: doc.id, 
                 origem: 'analises', 
                 ...doc.data(),
-                // Garante que o vídeo principal esteja formatado para embed
                 videoPrincipal: doc.data().videoPrincipal?.replace("watch?v=", "embed/") || ""
             }))
             .sort((a, b) => {
@@ -102,6 +115,6 @@ function iniciarSyncNoticias() {
     });
 }
 
-// Inicialização completa
+// Inicialização
 carregarBlocoEditorial();
 iniciarSyncNoticias();
