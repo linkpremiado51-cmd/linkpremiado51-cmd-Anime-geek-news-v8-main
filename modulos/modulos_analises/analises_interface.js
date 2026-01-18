@@ -1,6 +1,6 @@
 /**
  * modulos/modulos_analises/analises_interface.js
- * Ajuste: Remoção de referências antigas de paginação para suporte ao novo botão dinâmico
+ * Interface Modularizada com melhorias visuais e suporte ao botão de paginação dinâmico.
  */
 
 import { limparEspacos } from './analises_funcoes.js';
@@ -25,7 +25,10 @@ function criarRelacionadosHtml(newsId, relacionados) {
     if (!relacionados || !Array.isArray(relacionados)) return "";
     return relacionados.map(rel => `
         <div class="tema-card" onclick="window.analises.trocarVideo('player-${newsId}', '${rel.idVid}')">
-            <img src="${limparEspacos(rel.thumb)}" class="tema-thumb">
+            <div class="thumb-wrapper">
+                <img src="${limparEspacos(rel.thumb)}" class="tema-thumb" alt="${rel.titulo}">
+                <div class="play-overlay"><i class="fa-solid fa-play"></i></div>
+            </div>
             <div class="tema-titulo">${rel.titulo}</div>
         </div>
     `).join('');
@@ -39,14 +42,18 @@ export function renderizarNoticias(noticias, limite) {
     
     if (!container) return;
 
-    // Limpa o container (o novo botão será reinjetado pelo principal.js após esta execução)
+    // Limpa o container para nova renderização (o principal.js injeta o botão após isso)
     container.innerHTML = '';
 
     const baseUrl = window.location.origin + window.location.pathname;
     const listaParaExibir = noticias.slice(0, limite);
 
     if (listaParaExibir.length === 0) {
-        container.innerHTML = '<p style="text-align:center; padding:50px; opacity:0.5;">Nenhuma análise encontrada nesta categoria.</p>';
+        container.innerHTML = `
+            <div style="text-align:center; padding:80px 20px; opacity:0.6;">
+                <i class="fa-solid fa-layer-group" style="font-size:3rem; margin-bottom:20px; display:block;"></i>
+                <p>Nenhuma análise encontrada nesta categoria.</p>
+            </div>`;
         return;
     }
 
@@ -57,12 +64,17 @@ export function renderizarNoticias(noticias, limite) {
         return `
         <article class="destaque-secao" id="artigo-${news.id}" style="--tema-cor: ${news.cor || '#8A2BE2'}">
           <div class="destaque-padding">
-            <div class="destaque-categoria" onclick="window.analises.abrirNoModalGlobal('${news.id}')" style="cursor:pointer">
-                <i class="fa-solid fa-hashtag"></i> ${news.categoria || 'ANÁLISE'}
+            <div class="destaque-top-meta">
+                <div class="destaque-categoria" onclick="window.analises.abrirNoModalGlobal('${news.id}')">
+                    <i class="fa-solid fa-hashtag"></i> ${news.categoria || 'ANÁLISE'}
+                </div>
+                <div class="destaque-data-badge">
+                    <i class="fa-regular fa-clock"></i> ${news.tempoLeitura || '5 min'}
+                </div>
             </div>
             
             <div class="destaque-header">
-              <h2 class="destaque-titulo" onclick="window.analises.abrirNoModalGlobal('${news.id}')" style="cursor:pointer">
+              <h2 class="destaque-titulo" onclick="window.analises.abrirNoModalGlobal('${news.id}')">
                 ${news.titulo}
               </h2>
             </div>
@@ -75,21 +87,30 @@ export function renderizarNoticias(noticias, limite) {
           </div>
 
           <div class="destaque-media">
-            <iframe id="player-${news.id}" src="${limparEspacos(news.videoPrincipal)}" allowfullscreen></iframe>
+            <iframe 
+                id="player-${news.id}" 
+                src="${limparEspacos(news.videoPrincipal)}" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowfullscreen>
+            </iframe>
           </div>
 
           <div class="premium-actions-bar">
-            <button class="btn-premium-icon" onclick="window.analises.compartilhar('${news.titulo.replace(/'/g, "\\'")}', '${shareUrl}')">
-              <i class="fa-solid fa-share-nodes"></i> Compartilhar
+            <button class="btn-premium-icon" onclick="window.analises.compartilharNoticia('${news.titulo.replace(/'/g, "\\'")}', '${shareUrl}')">
+              <i class="fa-solid fa-share-nodes"></i> 
+              <span>Compartilhar</span>
             </button>
-            <button class="btn-premium-icon btn-stats">
-              <i class="fa-solid fa-chart-column"></i>
-              <span class="stats-num">${viewCount}</span>
-            </button>
+            <div class="stats-group">
+                <i class="fa-solid fa-chart-line"></i>
+                <span class="stats-num">${viewCount} visualizações</span>
+            </div>
           </div>
 
           <div class="carrossel-temas">
-            <div class="carrossel-header"><span class="temas-label">Vídeos Relacionados</span></div>
+            <div class="carrossel-header">
+                <i class="fa-solid fa-film"></i>
+                <span class="temas-label">Vídeos Relacionados</span>
+            </div>
             <div class="temas-scroll-wrapper">
                 <div class="temas-container">
                     ${criarRelacionadosHtml(news.id, news.relacionados)}
@@ -99,9 +120,12 @@ export function renderizarNoticias(noticias, limite) {
 
           <div class="comments-trigger-bar" onclick="window.analises.toggleComentarios(true, '${news.id}')">
             <div class="trigger-left">
+              <i class="fa-solid fa-circle-nodes"></i>
               <span>Ver discussão da comunidade...</span>
             </div>
-            <i class="fa-solid fa-comments"></i>
+            <div class="trigger-right">
+                <i class="fa-solid fa-comments"></i>
+            </div>
           </div>
         </article>
       `;
