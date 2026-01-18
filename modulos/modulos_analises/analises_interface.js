@@ -1,13 +1,10 @@
 /**
  * modulos/modulos_analises/analises_interface.js
- * Correção: Estilização do botão de paginação e limpeza de container
+ * Ajuste: Sincronização com a estrutura do analises.html
  */
 
 import { copiarLink, compartilharNoticia, trocarVideo, toggleComentarios, limparEspacos } from './analises_funcoes.js';
 
-/**
- * Cria o HTML da ficha técnica (grid de informações)
- */
 export function criarFichaHtml(ficha) {
     if (!ficha || !Array.isArray(ficha)) return "";
     return ficha.map(item => `
@@ -18,9 +15,6 @@ export function criarFichaHtml(ficha) {
     `).join('');
 }
 
-/**
- * Gera o HTML dos vídeos relacionados (carrossel)
- */
 function criarRelacionadosHtml(newsId, relacionados) {
     if (!relacionados || !Array.isArray(relacionados)) return "";
     return relacionados.map(rel => `
@@ -31,23 +25,19 @@ function criarRelacionadosHtml(newsId, relacionados) {
     `).join('');
 }
 
-/**
- * Renderiza a lista de notícias no container principal
- */
 export function renderizarNoticias(noticias, limite) {
     const container = document.getElementById('container-principal');
     const paginacaoWrapper = document.getElementById('pagination-control');
     
     if (!container) return;
 
-    // Limpa o container antes de renderizar para garantir que não haja lixo de outras seções
     container.innerHTML = '';
 
     const baseUrl = window.location.origin + window.location.pathname;
     const listaParaExibir = noticias.slice(0, limite);
 
     if (listaParaExibir.length === 0) {
-        container.innerHTML = '<p style="text-align:center; padding:50px; opacity:0.5;">Nenhuma análise encontrada nesta categoria.</p>';
+        container.innerHTML = '<p style="text-align:center; padding:100px; opacity:0.5;">Nenhuma análise encontrada.</p>';
         if (paginacaoWrapper) paginacaoWrapper.style.display = 'none';
         return;
     }
@@ -77,7 +67,7 @@ export function renderizarNoticias(noticias, limite) {
           </div>
 
           <div class="destaque-media">
-            <iframe id="player-${news.id}" src="${limparEspacos(news.videoPrincipal)}" allowfullscreen></iframe>
+            <iframe id="player-${news.id}" src="https://www.youtube.com/embed/${limparEspacos(news.videoPrincipal)}" allowfullscreen></iframe>
           </div>
 
           <div class="premium-actions-bar">
@@ -101,21 +91,20 @@ export function renderizarNoticias(noticias, limite) {
 
           <div class="comments-trigger-bar" onclick="window.analises.toggleComentarios(true, '${news.id}')">
             <div class="trigger-left">
+              <i class="fa-solid fa-comments"></i>
               <span>Ver discussão da comunidade...</span>
             </div>
-            <i class="fa-solid fa-comments"></i>
+            <i class="fa-solid fa-chevron-right"></i>
           </div>
         </article>
       `;
     }).join('');
 
-    // Gerencia a visibilidade do botão de paginação e garante o estilo
+    // Ajuste de visibilidade do Botão Carregar Mais
     if (paginacaoWrapper) {
-        if (limite < noticias.length) {
-            paginacaoWrapper.style.display = 'block';
-            // Força a classe do CSS no botão interno
-            const btn = paginacaoWrapper.querySelector('button');
-            if (btn) btn.className = 'btn-paginacao-geek';
+        // Agora comparando corretamente se há mais itens no array do que o limite atual
+        if (noticias.length > limite) {
+            paginacaoWrapper.style.setProperty('display', 'block', 'important');
         } else {
             paginacaoWrapper.style.display = 'none';
         }
