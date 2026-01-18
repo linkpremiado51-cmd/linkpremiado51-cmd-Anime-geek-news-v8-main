@@ -1,14 +1,4 @@
-Claro! Abaixo está o **código completo e atualizado** com as seguintes melhorias:
 
-✅ **Título da capa acima, descrição abaixo**  
-✅ **Lista de subcategorias fixas logo após a descrição**  
-✅ **Todos os textos (título + descrição) carregados do Firebase no caminho `capa/analises`**  
-✅ **Layout responsivo mantido (sem cortes em mobile)**  
-✅ **Estilo visual coeso com o restante do design**
-
----
-
-```html
 <div class="destaque-wrapper">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
@@ -617,20 +607,3 @@ Claro! Abaixo está o **código completo e atualizado** com as seguintes melhori
     }
   </style>
 </div>
-```
-
----
-
-### ✅ Estrutura da Capa:
-1. **Título** (`<h1>`) — vindo do campo `titulo` no documento `capa/analises`
-2. **Descrição** (`<p>`) — vindo do campo `descricao`
-3. **Subcategorias fixas** — lista imutável conforme solicitado
-4. **Botão "Editar Capa"** — para futura implementação de edição
-
-> 💡 **Dica para o Firebase**:  
-> No Firestore, crie o documento assim:  
-> **Coleção**: `capa` → **Documento**: `analises` → Campos:  
-> - `titulo` (string)  
-> - `descricao` (string)
-
-Pronto! Agora tudo está organizado, responsivo e conectado ao Firebase.
