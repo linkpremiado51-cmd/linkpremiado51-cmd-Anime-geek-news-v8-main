@@ -1,6 +1,6 @@
 /**
- * modulos/modulos_analises/analises_interface.js
- * Interface Modularizada com injeção em placeholder fixo para evitar conflitos de navegação.
+ * ARQUIVO: modulos/modulos_analises/analises_interface.js
+ * Interface Modularizada - Focada em renderização pura para evitar conflitos de DOM.
  */
 
 import { limparEspacos } from './analises_funcoes.js';
@@ -35,27 +35,25 @@ function criarRelacionadosHtml(newsId, relacionados) {
 }
 
 /**
- * Renderiza o botão de "Carregar Mais" no placeholder fixo do HTML
+ * Injeta o HTML do botão no placeholder fixo.
+ * O evento de clique agora é gerenciado globalmente pelo analises_principal.js
  */
-export function renderizarBotaoPaginacao(callback) {
-    // Busca o placeholder que adicionamos manualmente no analises.html
+export function renderizarBotaoPaginacao() {
     const paginationWrapper = document.getElementById('novo-pagination-modulo');
     
-    // Se o placeholder não existir (ex: erro de carregamento da seção), encerra
     if (!paginationWrapper) return;
 
-    // Injeta o botão com o estilo Geek
-    paginationWrapper.innerHTML = `
-        <div style="text-align: center; padding: 20px 0 60px 0; width: 100%;">
-            <button class="btn-paginacao-geek" id="btn-carregar-mais">
-                <i class="fa-solid fa-chevron-down"></i>
-                <span>Carregar mais análises</span>
-            </button>
-        </div>
-    `;
-
-    const btn = paginationWrapper.querySelector('#btn-carregar-mais');
-    if (btn) btn.onclick = callback;
+    // Injeta apenas se o botão ainda não estiver lá para evitar cintilação (flicker)
+    if (!document.getElementById('btn-carregar-mais')) {
+        paginationWrapper.innerHTML = `
+            <div style="text-align: center; padding: 20px 0 60px 0; width: 100%;">
+                <button class="btn-paginacao-geek" id="btn-carregar-mais">
+                    <i class="fa-solid fa-chevron-down"></i>
+                    <span>Carregar mais análises</span>
+                </button>
+            </div>
+        `;
+    }
 }
 
 /**
