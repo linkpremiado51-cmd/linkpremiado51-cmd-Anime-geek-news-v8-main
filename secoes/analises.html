@@ -1,5 +1,8 @@
 <div class="destaque-wrapper">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
+
+  <div id="container-capa"></div>
 
   <div id="container-principal"></div>
   
@@ -19,7 +22,7 @@
          <div id="modal-categoria" class="destaque-categoria"></div>
       </div>
       <p id="modal-resumo" class="destaque-resumo"></p>
-      <a id="modal-link" class="btn-ver-artigo"><i class="fa-solid fa-book-open"></i> Ler artigo completo</a>
+      <a id="modal-link" class="btn-ver-artigo" target="_blank"><i class="fa-solid fa-book-open"></i> Ler artigo completo</a>
       <div id="modal-ficha" class="destaque-info-grid"></div>
       <iframe id="modal-video" allowfullscreen></iframe>
     </div>
@@ -65,7 +68,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, query, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBC_ad4X9OwCHKvcG_pNQkKEl76Zw2tu6o",
@@ -80,9 +83,20 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Variáveis
+    // --- VARIÁVEIS GLOBAIS ---
     let todasAsNoticias = [];
     let noticiasExibidas = 5;
+
+    // --- CAPA PADRÃO (FALLBACK) ---
+    // Isso garante que a capa apareça mesmo sem a coleção criada
+    const CAPA_PADRAO = {
+        titulo: "Bem-vindo ao Portal AniGeek News",
+        categoria: "EDITORIAL",
+        resumo: "Acompanhe as últimas atualizações do mundo geek, animes e tecnologia com nossa cobertura executiva completa.",
+        imagem: "https://images.unsplash.com/photo-1504639725590-34d0984388bd?q=80&w=1974&auto=format&fit=crop", // Imagem genérica de tecnologia/news
+        link: "#",
+        autor: "Equipe Editorial"
+    };
 
     // --- FUNÇÕES UTILITÁRIAS ---
     function limparEspacos(url) {
@@ -106,7 +120,7 @@
       } catch (err) { console.error("Erro copiar:", err); }
     };
 
-    // --- LÓGICA DE TROCA DE VÍDEO INSTANTÂNEA ---
+    // --- VÍDEO E MODAIS ---
     window.trocarVideoInstantaneo = (idPlayer, idVideo) => {
       const player = document.getElementById(idPlayer);
       if (player) {
@@ -114,12 +128,9 @@
       }
     };
 
-    // --- LÓGICA DO MODAL DE PESQUISA/LINK ---
     window.fecharModal = () => {
       document.getElementById('modal-noticia').style.display = 'none';
-      document.getElementById('modal-video').src = ""; // Para o vídeo
-      
-      // Limpa a URL sem recarregar
+      document.getElementById('modal-video').src = "";
       const url = new URL(window.location);
       url.searchParams.delete('id');
       window.history.pushState({}, '', url);
@@ -154,7 +165,7 @@
       }
     }
 
-    // --- LÓGICA DO MODAL DE COMENTÁRIOS (SOCIAL) ---
+    // --- COMENTÁRIOS ---
     window.abrirComentarios = (idNoticia) => {
       document.getElementById('modal-comentarios-geek').classList.add('active');
       document.body.style.overflow = 'hidden';
@@ -165,7 +176,36 @@
       document.body.style.overflow = 'auto';
     };
 
-    // --- RENDERIZAÇÃO PRINCIPAL ---
+    // --- RENDERIZAÇÃO DA CAPA (Feature Nova) ---
+    function renderizarCapa(dados) {
+        const container = document.getElementById('container-capa');
+        if(!container) return;
+
+        // Se dados for null, usa o padrão
+        const info = dados || CAPA_PADRAO;
+        
+        container.innerHTML = `
+            <div class="hero-executive" style="background-image: url('${info.imagem}');">
+                <div class="hero-overlay">
+                    <div class="hero-badge">MANCHETE PRINCIPAL</div>
+                    <div class="hero-content">
+                        <span class="hero-categoria">${info.categoria || 'GERAL'}</span>
+                        <h1 class="hero-titulo">${info.titulo}</h1>
+                        <p class="hero-resumo">${info.resumo}</p>
+                        
+                        <div class="hero-meta">
+                            <span>Por <b>${info.autor || 'Redação'}</b></span>
+                            ${info.data ? `<span>• ${info.data}</span>` : ''}
+                        </div>
+
+                        ${info.link ? `<a href="${info.link}" class="btn-hero-action" target="_blank">Ler Matéria Completa <i class="fa-solid fa-arrow-right"></i></a>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // --- RENDERIZAÇÃO DO FEED (Mantido e Melhorado) ---
     function renderizarNoticias() {
       const container = document.getElementById('container-principal');
       const btnPaginacao = document.getElementById('pagination-control');
@@ -174,14 +214,17 @@
       const baseUrl = window.location.origin + window.location.pathname;
       const listaParaExibir = todasAsNoticias.slice(0, noticiasExibidas);
 
+      if (listaParaExibir.length === 0) {
+          container.innerHTML = '<p style="text-align:center; padding:20px; color:#666;">Carregando análises...</p>';
+          return;
+      }
+
       container.innerHTML = listaParaExibir.map(news => {
         const shareUrl = `${baseUrl}?id=${encodeURIComponent(news.id)}`;
-        
-        // Simulação de visualizações
-        const viewCount = Math.floor(Math.random() * 900) + 100 + "K";
+        const viewCount = Math.floor(Math.random() * 900) + 100 + "K"; // Simulação
 
         return `
-        <article class="destaque-secao" id="artigo-${news.id}" style="--tema-cor: ${news.cor}">
+        <article class="destaque-secao" id="artigo-${news.id}" style="--tema-cor: ${news.cor || '#333'}">
           <div class="destaque-padding">
             <div class="destaque-categoria"><i class="fa-solid fa-hashtag"></i> ${news.categoria}</div>
             
@@ -198,7 +241,7 @@
             </div>
 
             <p class="destaque-resumo">${news.resumo}</p>
-            <a href="${news.linkArtigo}" class="btn-ver-artigo"><i class="fa-solid fa-book-open"></i> Ver artigo completo</a>
+            <a href="${news.linkArtigo}" class="btn-ver-artigo" target="_blank"><i class="fa-solid fa-book-open"></i> Ver artigo completo</a>
             
             <div class="destaque-info-grid">
               ${news.ficha ? news.ficha.map(item => `<div class="info-item"><span class="info-label">${item.label}</span><span class="info-valor">${item.valor}</span></div>`).join('') : ''}
@@ -210,7 +253,6 @@
           </div>
           
           <div class="premium-actions-bar">
-              
               <div class="menu-opcoes-container" tabindex="0" style="position: relative;">
                 <button class="btn-premium-icon">
                   <i class="fa-regular fa-thumbs-up"></i> Útil
@@ -218,9 +260,7 @@
                 <div class="dropdown-conteudo dropdown-up">
                   <a href="#"><i class="fa-solid fa-circle-play"></i> Curti vídeo</a>
                   <a href="#"><i class="fa-solid fa-newspaper"></i> Curti artigo</a>
-                  <a href="#"><i class="fa-solid fa-user-pen"></i> Curti editor</a>
                   <hr>
-                  <a href="#"><i class="fa-solid fa-minus"></i> Ver menos</a>
                   <a href="#"><i class="fa-solid fa-plus"></i> Ver mais</a>
                 </div>
               </div>
@@ -234,10 +274,9 @@
                 <span class="stats-num">${viewCount}</span>
               </button>
 
-              <button class="btn-premium-icon btn-monetize" onclick="alert('Você ganhou pontos Geek!')">
+              <button class="btn-premium-icon btn-monetize">
                 <i class="fa-regular fa-gem"></i>
               </button>
-
           </div>
 
           <div class="carrossel-temas">
@@ -247,7 +286,7 @@
                   <div class="tema-card" onclick="window.trocarVideoInstantaneo('player-${news.id}', '${rel.idVid}')">
                     <img src="${limparEspacos(rel.thumb)}" class="tema-thumb">
                     <div class="tema-titulo">${rel.titulo}</div>
-                  </div>`).join('') : ''}
+                  </div>`).join('') : '<p style="padding:10px; font-size:12px; color:#888">Sem vídeos relacionados.</p>'}
             </div></div>
           </div>
 
@@ -267,6 +306,7 @@
       `;
       }).join('');
 
+      // Controle do botão de paginação
       if (noticiasExibidas < todasAsNoticias.length) {
           btnPaginacao.style.display = 'block';
       } else {
@@ -274,14 +314,33 @@
       }
     }
 
-    // Botão Carregar Mais
     document.getElementById('btn-carregar-mais').onclick = () => {
         noticiasExibidas += 5;
         renderizarNoticias();
     };
 
     // --- FIREBASE LISTENERS ---
-    function carregarTudoRealTime() {
+    
+    // 1. Listener da Coleção CAPA (Para a manchete principal)
+    function carregarCapa() {
+        const qCapa = collection(db, "capa");
+        onSnapshot(qCapa, (snapshot) => {
+            if (!snapshot.empty) {
+                // Pega o primeiro documento da coleção capa
+                const docData = snapshot.docs[0].data();
+                renderizarCapa(docData);
+            } else {
+                // Se não existir coleção, usa o fallback padrão
+                renderizarCapa(CAPA_PADRAO);
+            }
+        }, (error) => {
+            console.warn("Erro ao carregar capa (usando padrão):", error);
+            renderizarCapa(CAPA_PADRAO);
+        });
+    }
+
+    // 2. Listener da Coleção ANALISES (Para o feed)
+    function carregarFeed() {
       const q = collection(db, "analises");
       onSnapshot(q, (snapshot) => {
         const noticiasFB = [];
@@ -290,197 +349,325 @@
           noticiasFB.push({ id: doc.id, ...d });
         });
         
+        // Ordenação opcional (assumindo que pode ter um campo data, senão mantém ordem de inserção)
         todasAsNoticias = [...noticiasFB];
-        todasAsNoticias.sort((a, b) => (b.data || 0) - (a.data || 0));
+        // todasAsNoticias.sort((a, b) => (b.data || 0) - (a.data || 0)); // Descomente se tiver campo data timestamp
 
         renderizarNoticias();
-        verificarNoticiaNaUrl(); // Checa se precisa abrir o modal de pesquisa
+        verificarNoticiaNaUrl();
       });
     }
 
-    carregarTudoRealTime();
+    // Inicialização
+    carregarCapa();
+    carregarFeed();
   </script>
 
   <style>
-    /* --- CSS DO MODAL DE PESQUISA --- */
-    #modal-noticia {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(0,0,0,0.9);
-      z-index: 99999;
-      padding: 20px;
-      overflow-y: auto;
-    }
-    #modal-conteudo {
-      background: white;
-      color: #121212;
-      max-width: 900px;
-      margin: 40px auto;
-      padding: 30px;
-      border-radius: 8px;
-      position: relative;
-    }
-    #modal-fechar {
-      position: absolute; top: 15px; right: 15px;
-      background: #eee; border: none; width: 32px; height: 32px;
-      border-radius: 50%; font-size: 18px; cursor: pointer;
-    }
-    #modal-video { width: 100%; aspect-ratio: 16 / 9; margin: 20px 0; border: none; }
+    /* --- RESET & FONTS --- */
+    body { font-family: 'Roboto', sans-serif; margin: 0; padding: 0; background-color: #f4f4f9; color: #333; }
+    * { box-sizing: border-box; }
 
-    /* --- CSS GLOBAL --- */
-    .destaque-acoes .dropdown-conteudo, 
-    .menu-opcoes-container .dropdown-conteudo {
+    /* --- ESTILOS DA NOVA CAPA (EXECUTIVE) --- */
+    #container-capa {
+        width: 100%;
+        margin-bottom: 30px;
+    }
+
+    .hero-executive {
+        position: relative;
+        width: 100%;
+        min-height: 500px; /* Altura imponente */
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        display: flex;
+        align-items: flex-end; /* Texto embaixo */
+        color: white;
+    }
+
+    .hero-overlay {
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.1) 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 40px 5%;
+    }
+
+    .hero-badge {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background-color: #d32f2f; /* Vermelho notícia urgente */
+        color: white;
+        padding: 5px 12px;
+        font-weight: 900;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border-radius: 4px;
+    }
+
+    .hero-content {
+        max-width: 900px;
+    }
+
+    .hero-categoria {
+        display: inline-block;
+        background: rgba(255,255,255,0.2);
+        backdrop-filter: blur(5px);
+        padding: 4px 10px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+        border-left: 3px solid #00d2ff;
+        text-transform: uppercase;
+    }
+
+    .hero-titulo {
+        font-size: 3rem; /* Título bem grande */
+        font-weight: 900;
+        line-height: 1.1;
+        margin: 0 0 15px 0;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .hero-resumo {
+        font-size: 1.1rem;
+        line-height: 1.6;
+        margin: 0 0 20px 0;
+        opacity: 0.9;
+        max-width: 700px;
+        font-weight: 300;
+    }
+
+    .hero-meta {
+        font-size: 0.9rem;
+        opacity: 0.8;
+        margin-bottom: 25px;
+    }
+
+    .btn-hero-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        background-color: white;
+        color: #121212;
+        padding: 12px 25px;
+        text-decoration: none;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.9rem;
+        border-radius: 2px; /* Cantos mais retos = mais sério */
+        transition: transform 0.2s, background 0.2s;
+    }
+    .btn-hero-action:hover {
+        background-color: #f0f0f0;
+        transform: translateY(-2px);
+    }
+
+    /* Responsividade da Capa */
+    @media (max-width: 768px) {
+        .hero-titulo { font-size: 2rem; }
+        .hero-executive { min-height: 400px; }
+        .hero-resumo { display: none; /* Esconde resumo no mobile para limpar */ }
+    }
+
+
+    /* --- ESTILOS DO FEED DE NOTÍCIAS (Mantido e ajustado) --- */
+    #container-principal {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0 15px;
+    }
+
+    .destaque-secao {
+        background: white;
+        margin-bottom: 30px;
+        border-radius: 8px; /* Reduzi o arredondamento para ficar mais sério */
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        border: 1px solid #e0e0e0;
+        overflow: hidden;
+    }
+
+    .destaque-padding { padding: 20px; }
+    
+    .destaque-categoria {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--tema-cor, #555);
+        text-transform: uppercase;
+        margin-bottom: 10px;
+        display: flex; align-items: center; gap: 5px;
+    }
+
+    .destaque-header {
+        display: flex; justify-content: space-between; align-items: flex-start;
+        margin-bottom: 15px;
+    }
+
+    .destaque-titulo {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1a1a1a;
+        margin: 0;
+        line-height: 1.3;
+    }
+
+    .destaque-resumo {
+        font-size: 1rem;
+        color: #444;
+        line-height: 1.6;
+        margin-bottom: 15px;
+    }
+
+    .btn-ver-artigo {
+        display: inline-block;
+        color: #007bff;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+    .btn-ver-artigo:hover { text-decoration: underline; }
+
+    .destaque-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 10px;
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 6px;
+    }
+    .info-item { display: flex; flex-direction: column; }
+    .info-label { font-size: 11px; color: #888; text-transform: uppercase; font-weight: 700; }
+    .info-valor { font-size: 13px; color: #222; font-weight: 500; }
+
+    .destaque-media iframe {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        border: none;
+        display: block;
+    }
+
+    /* --- CARROSSEL --- */
+    .carrossel-temas { padding: 15px 0 0 0; background: #fff; }
+    .carrossel-header { padding: 0 20px 10px; border-bottom: 1px solid #f0f0f0; }
+    .temas-label { font-size: 12px; font-weight: 800; color: #333; text-transform: uppercase; }
+    
+    .temas-scroll-wrapper { overflow-x: auto; padding: 15px 20px; }
+    .temas-container { display: flex; gap: 15px; }
+    .tema-card {
+        min-width: 140px; cursor: pointer;
+        transition: opacity 0.2s;
+    }
+    .tema-card:hover { opacity: 0.8; }
+    .tema-thumb { width: 100%; height: 80px; object-fit: cover; border-radius: 4px; background: #eee; }
+    .tema-titulo { font-size: 12px; font-weight: 600; line-height: 1.3; margin-top: 5px; color: #333; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+    /* --- MENU DROPDOWN --- */
+    .menu-opcoes-container { position: relative; }
+    .btn-tres-pontos { border: none; background: none; font-size: 18px; cursor: pointer; color: #666; padding: 5px; }
+    
+    .dropdown-conteudo {
         display: none;
         position: absolute;
         background: white;
         min-width: 170px;
         box-shadow: 0px 8px 20px rgba(0,0,0,0.15);
         z-index: 100;
-        border-radius: 12px;
+        border-radius: 6px;
         overflow: hidden;
         border: 1px solid #eee;
     }
-    .header-dropdown { top: 100%; right: 0; margin-top: 5px; }
-    .dropdown-up { bottom: 110%; top: auto; left: 0; margin-bottom: 8px; }
+    .header-dropdown { top: 100%; right: 0; }
+    .dropdown-up { bottom: 100%; left: 0; margin-bottom: 5px; }
     .menu-opcoes-container:focus-within .dropdown-conteudo { display: block; }
     
     .dropdown-conteudo a {
-        color: #333; padding: 12px 16px; text-decoration: none;
+        color: #333; padding: 10px 15px; text-decoration: none;
         display: flex; align-items: center; gap: 10px; font-size: 13px;
-        border-bottom: 1px solid #f5f5f5; font-weight: 500;
+        border-bottom: 1px solid #f9f9f9;
     }
-    .dropdown-conteudo a:hover { background-color: #f9f9f9; color: var(--primary); }
-    .dropdown-conteudo hr { margin: 0; border: none; border-top: 1px solid #eee; }
+    .dropdown-conteudo a:hover { background-color: #f5f5f5; }
 
-    /* --- BARRA PREMIUM DE AÇÕES --- */
+    /* --- ACTIONS BAR --- */
     .premium-actions-bar {
-        display: flex;
-        align-items: center;
-        padding: 12px 15px;
-        gap: 10px;
-        border-top: 1px solid #f0f0f0;
-        background: #fff;
+        display: flex; align-items: center; padding: 12px 20px; gap: 10px;
+        border-top: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0;
         overflow-x: auto;
     }
-
     .btn-premium-icon {
-        background: #f8f9fa;
-        border: 1px solid transparent;
-        padding: 8px 14px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 700;
-        color: #444;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        white-space: nowrap;
+        background: #f1f3f5; border: none; padding: 8px 12px;
+        border-radius: 4px; font-size: 12px; font-weight: 600;
+        color: #495057; display: flex; align-items: center; gap: 6px;
+        cursor: pointer; white-space: nowrap;
     }
-    .btn-premium-icon:hover { background: #e9ecef; border-color: #dee2e6; }
+    .btn-premium-icon:hover { background: #e9ecef; }
+    .btn-monetize { color: #d63384; background: #fff0f6; }
     
-    /* Cores Específicas */
-    .btn-stats { background: transparent; border: 1px solid #eee; }
-    .btn-stats .stats-num { font-size: 11px; opacity: 0.8; }
-    .btn-monetize { color: #d4af37; background: #fffcf0; border: 1px solid #fae19d; }
-
-    /* --- BARRA DE COMENTÁRIOS (TRIGGER) --- */
+    /* --- COMMENTS TRIGGER --- */
     .comments-trigger-bar {
-        margin: 10px 15px 25px 15px;
-        background: #f1f3f5;
-        border-radius: 12px;
-        padding: 12px 15px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        margin: 15px 20px 20px;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+        padding: 10px 15px;
+        display: flex; justify-content: space-between; align-items: center;
         cursor: pointer;
-        transition: background 0.2s;
     }
-    .comments-trigger-bar:hover { background: #e9ecef; }
     .trigger-left { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; color: #555; }
-    .avatars-stack { display: flex; padding-left: 5px; }
-    .av-s { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #f1f3f5; margin-left: -8px; }
+    .avatars-stack { display: flex; padding-left: 8px; }
+    .av-s { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff; margin-left: -8px; }
 
-    /* --- PAGINAÇÃO ESTILIZADA --- */
-    .btn-paginacao-geek {
-        background: #212529; color: white; border: none;
-        padding: 12px 30px; border-radius: 30px;
-        font-weight: bold; cursor: pointer; font-size: 13px;
-        text-transform: uppercase; letter-spacing: 0.5px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    /* --- MODALS CSS --- */
+    #modal-noticia {
+      display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.85); z-index: 99999; padding: 20px; overflow-y: auto;
     }
-
-    /* --- MODAL DE COMENTÁRIOS RICO --- */
+    #modal-conteudo {
+      background: white; max-width: 800px; margin: 40px auto; padding: 30px;
+      border-radius: 4px; position: relative;
+    }
+    #modal-fechar {
+      position: absolute; top: 15px; right: 15px; background: #eee;
+      border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+    }
+    
     .modal-geek-overlay {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-        z-index: 9999; display: none;
+        background: rgba(0,0,0,0.5); z-index: 9999; display: none;
         justify-content: center; align-items: flex-end;
     }
     .modal-geek-overlay.active { display: flex; }
-
     .modal-geek-content {
-        background: #fff; width: 100%; max-width: 600px;
-        height: 85vh; border-radius: 20px 20px 0 0;
-        display: flex; flex-direction: column;
-        box-shadow: 0 -5px 25px rgba(0,0,0,0.2);
-        animation: slideUp 0.3s ease-out;
+        background: #fff; width: 100%; max-width: 600px; height: 80vh;
+        border-radius: 12px 12px 0 0; display: flex; flex-direction: column;
     }
-
-    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
-    .modal-geek-header {
-        padding: 15px 20px; border-bottom: 1px solid #eee;
-        display: flex; justify-content: space-between; align-items: center;
-    }
-    .header-main-title { font-weight: 800; font-size: 16px; display: flex; align-items: center; gap: 10px; }
-    .header-main-title small { font-weight: 400; color: #777; font-size: 12px; }
-    .btn-geek-close { background: none; border: none; font-size: 24px; color: #999; cursor: pointer; }
-
-    .modal-geek-body { flex: 1; overflow-y: auto; padding: 20px; background: #fcfcfc; }
-
-    /* Cartão de Comentário Rico */
-    .geek-comment-card { display: flex; gap: 12px; margin-bottom: 20px; }
-    .geek-avatar { width: 32px; height: 32px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; flex-shrink: 0; }
-    .geek-info-col { flex: 1; }
-    .geek-user-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-    .g-name { font-weight: 700; font-size: 13px; color: #222; }
-    .g-time { font-size: 11px; color: #999; }
-    .g-badge { font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 800; }
-    .badge-pro { background: #000; color: #fff; }
+    .modal-geek-header { padding: 15px; border-bottom: 1px solid #eee; display:flex; justify-content:space-between; }
+    .modal-geek-body { flex: 1; padding: 20px; overflow-y: auto; }
+    .modal-geek-footer { padding: 15px; border-top: 1px solid #eee; }
+    .input-wrapper-geek { display:flex; background:#f0f2f5; padding:10px; border-radius:20px; gap:10px; }
+    .input-wrapper-geek input { border:none; background:transparent; flex:1; outline:none; }
     
-    .geek-text { font-size: 14px; color: #444; line-height: 1.4; margin-bottom: 8px; }
-    .geek-actions-row { display: flex; gap: 15px; font-size: 12px; color: #666; font-weight: 600; cursor: pointer; }
+    .geek-comment-card { display: flex; gap: 12px; margin-bottom: 20px; }
+    .geek-avatar { width: 32px; height: 32px; border-radius: 50%; color: white; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-weight:bold; }
+    .geek-info-col { flex: 1; }
+    .geek-user-row { font-size:13px; font-weight:bold; margin-bottom:4px; display:flex; gap:8px; align-items:center; }
+    .badge-pro { background:black; color:white; font-size:9px; padding:2px 4px; border-radius:3px; }
+    .geek-text { font-size:14px; line-height:1.4; color:#333; margin-bottom:5px; }
+    .geek-actions-row { font-size:12px; color:#666; display:flex; gap:15px; cursor:pointer; }
+    .btn-geek-close { background:none; border:none; font-size:20px; cursor:pointer; }
+    .btn-paginacao-geek { background: #121212; color: #fff; border:none; padding: 10px 25px; border-radius: 30px; cursor:pointer; text-transform:uppercase; font-size:12px; font-weight:bold; letter-spacing:1px; }
 
-    .modal-geek-footer { padding: 15px; border-top: 1px solid #eee; background: white; }
-    .input-wrapper-geek {
-        display: flex; align-items: center; background: #f0f2f5;
-        padding: 8px 15px; border-radius: 25px; gap: 10px;
-    }
-    .mini-my-avatar { width: 24px; height: 24px; border-radius: 50%; display:flex; align-items:center; justify-content:center; color:white; font-size:10px; }
-    .input-wrapper-geek input { flex: 1; background: transparent; border: none; outline: none; font-size: 14px; }
-    .btn-send-geek { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 16px; }
-
-    /* Toast de cópia */
+    /* Toast */
     #toast-copiado {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #333;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 20px;
-      font-size: 14px;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s;
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #333; color: white; padding: 10px 20px; border-radius: 4px;
+      font-size: 14px; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 100000;
     }
-    #toast-copiado.mostrar {
-      opacity: 1;
-    }
+    #toast-copiado.mostrar { opacity: 1; }
   </style>
 </div>
-
