@@ -1,6 +1,6 @@
 /**
  * modulos/modulos_analises/analises_principal.js
- * Correção definitiva: Mapeamento do campo 'lastUpdate' para ordenação
+ * Ajuste: Garantindo a coleção correta e lógica de carregamento
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -8,6 +8,7 @@ import { getFirestore, collection, onSnapshot, doc, getDoc } from "https://www.g
 import * as Funcoes from './analises_funcoes.js';
 import * as Interface from './analises_interface.js';
 
+// Configuração extraída do seu sistema
 const firebaseConfig = {
     apiKey: "AIzaSyBC_ad4X9OwCHKvcG_pNQkKEl76Zw2tu6o",
     authDomain: "anigeeknews.firebaseapp.com",
@@ -21,8 +22,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// Variáveis de controle de estado
 let todasAsNoticias = [];
-let noticiasExibidasCount = 5;
+let noticiasExibidasCount = 5; // Começa mostrando 5
 
 window.analises = {
     copiarLink: Funcoes.copiarLink,
@@ -37,8 +39,10 @@ window.analises = {
         }
     },
 
+    // ESTA FUNÇÃO É O QUE O BOTÃO CLICA
     carregarMais: () => {
-        noticiasExibidasCount += 5;
+        noticiasExibidasCount += 5; // Aumenta o limite
+        // Re-renderiza a mesma lista, mas com o novo limite
         Interface.renderizarNoticias(todasAsNoticias, noticiasExibidasCount);
         vincularEventosInterface();
     }
@@ -69,7 +73,7 @@ async function carregarBlocoEditorial() {
 }
 
 function iniciarSyncNoticias() {
-    // Usamos a coleção pura para evitar erros de índice/query do Firebase
+    // APONTANDO DIRETAMENTE PARA A COLEÇÃO 'analises'
     const colRef = collection(db, "analises");
     
     onSnapshot(colRef, (snapshot) => {
@@ -78,18 +82,19 @@ function iniciarSyncNoticias() {
             const dados = doc.data();
             noticiasFB.push({ 
                 id: doc.id, 
-                origem: 'analises', 
+                origem: 'analises', // Define a origem correta para o navegador
                 ...dados 
             });
         });
         
-        // Ordenação manual usando o campo 'lastUpdate' que vimos no seu Firebase
+        // Ordenação por lastUpdate (visto no seu print do Firebase)
         todasAsNoticias = noticiasFB.sort((a, b) => {
             const dataA = a.lastUpdate ? new Date(a.lastUpdate) : 0;
             const dataB = b.lastUpdate ? new Date(b.lastUpdate) : 0;
             return dataB - dataA;
         });
         
+        // Primeira renderização com o limite inicial (5)
         Interface.renderizarNoticias(todasAsNoticias, noticiasExibidasCount);
         vincularEventosInterface();
     });
@@ -98,6 +103,8 @@ function iniciarSyncNoticias() {
 function vincularEventosInterface() {
     const btnMais = document.getElementById('btn-carregar-mais');
     if (btnMais) {
+        // Remove ouvintes antigos para não duplicar o clique
+        btnMais.onclick = null;
         btnMais.onclick = (e) => {
             e.preventDefault();
             window.analises.carregarMais();
@@ -105,6 +112,6 @@ function vincularEventosInterface() {
     }
 }
 
-// Inicialização imediata das funções
+// Inicialização
 carregarBlocoEditorial();
 iniciarSyncNoticias();
