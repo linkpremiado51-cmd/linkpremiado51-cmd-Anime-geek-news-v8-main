@@ -1,12 +1,32 @@
 /**
  * ARQUIVO: modulos/modulos_analises/analises_principal.js
- * Sistema de Paginação com Delegamento de Eventos (Blindagem contra Race Conditions)
+ * Sistema com Logs Visuais para Mobile e Busca Persistente
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import * as Funcoes from './analises_funcoes.js';
 import * as Interface from './analises_interface.js';
+
+// --- SISTEMA DE LOGS VISUAIS PARA CELULAR ---
+function criarPainelLogs() {
+    if (document.getElementById('debug-mobile')) return;
+    const panel = document.createElement('div');
+    panel.id = 'debug-mobile';
+    panel.style = "position:fixed; top:0; left:0; width:100%; background:rgba(0,0,0,0.8); color:#0f0; font-family:monospace; font-size:10px; z-index:99999; padding:5px; pointer-events:none; max-height:100px; overflow:hidden;";
+    document.body.appendChild(panel);
+}
+
+function logVisual(msg) {
+    const panel = document.getElementById('debug-mobile');
+    if (panel) {
+        const line = document.createElement('div');
+        line.textContent = `> ${new Date().toLocaleTimeString()}: ${msg}`;
+        panel.prepend(line);
+    }
+    console.log(msg);
+}
+// --------------------------------------------
 
 const firebaseConfig = {
     apiKey: "AIzaSyBC_ad4X9OwCHKvcG_pNQkKEl76Zw2tu6o",
@@ -24,29 +44,20 @@ const db = getFirestore(app);
 let todasAsAnalisesLocais = [];
 let noticiasExibidasCount = 5;
 
-// Objeto Global para funções acessíveis via HTML/Console
 window.analises = {
     ...Funcoes,
-    
     abrirNoModalGlobal: (id) => {
         const noticia = todasAsAnalisesLocais.find(n => n.id === id);
         if (noticia && window.abrirModalNoticia) window.abrirModalNoticia(noticia);
     },
-
-    /**
-     * Incrementa o contador de exibição.
-     */
     carregarMaisNovo: () => {
+        logVisual("Botão clicado! Carregando +5...");
         noticiasExibidasCount += 5;
         atualizarInterface();
     }
 };
 
-/**
- * SOLUÇÃO DE DELEGAMENTO (Blindagem Total):
- * Escuta cliques no documento inteiro. Se o alvo for o nosso botão, executa a função.
- * Isso sobrevive mesmo se o navegacao.js destruir e recriar o DOM.
- */
+// Delegamento de Eventos (Blindagem)
 document.addEventListener('click', (e) => {
     const target = e.target.closest('#btn-carregar-mais');
     if (target) {
@@ -55,57 +66,50 @@ document.addEventListener('click', (e) => {
     }
 });
 
-/**
- * Carrega o bloco editorial (título e descrição da capa)
- */
 async function carregarBlocoEditorial() {
+    logVisual("Buscando dados editoriais...");
     const blocoRef = doc(db, "sobre_nos", "analises_bloco_1");
     try {
         const snap = await getDoc(blocoRef);
         if (snap.exists()) {
             const data = snap.data();
             const tituloEl = document.getElementById('capa-titulo');
-            const descEl = document.getElementById('capa-descricao');
-            const containerTags = document.getElementById('subcategorias-container');
-            
             if (tituloEl) tituloEl.textContent = data.titulo || "Análises";
-            if (descEl) descEl.textContent = data.descricao || "";
-            if (containerTags && data.subcategorias) {
-                containerTags.innerHTML = data.subcategorias.map(tag => 
-                    `<span class="subcat-tag">${tag}</span>`
-                ).join('');
-            }
+            logVisual("Editorial carregado.");
         }
     } catch (error) { 
-        console.error("Erro editorial:", error); 
+        logVisual("Erro no Firebase Editorial."); 
     }
 }
 
 /**
- * Renderiza as notícias e gerencia o botão de paginação
+ * Tenta encontrar o container do botão repetidamente
  */
-function atualizarInterface() {
-    // 1. Renderiza os cards
-    Interface.renderizarNoticias(todasAsAnalisesLocais, noticiasExibidasCount);
-    
-    // 2. Lógica de exibição do botão
-    const temMaisParaCarregar = todasAsAnalisesLocais.length > noticiasExibidasCount;
+function forcarBotao(tentativas = 0) {
     const btnContainer = document.getElementById('novo-pagination-modulo');
+    const temMais = todasAsAnalisesLocais.length > noticiasExibidasCount;
 
-    if (temMaisParaCarregar) {
-        // Chamamos a interface apenas para injetar o HTML do botão no placeholder
-        Interface.renderizarBotaoPaginacao(); 
+    if (btnContainer) {
+        logVisual("Container do botão ENCONTRADO!");
+        if (temMais) Interface.renderizarBotaoPaginacao();
+    } else if (tentativas < 10) {
+        logVisual(`Container não achado. Tentativa ${tentativas + 1}/10...`);
+        setTimeout(() => forcarBotao(tentativas + 1), 1000);
     } else {
-        // Se não tem mais nada, limpa o placeholder
-        if (btnContainer) btnContainer.innerHTML = '';
+        logVisual("ERRO: Container 'novo-pagination-modulo' não apareceu no DOM.");
     }
 }
 
-/**
- * Sincroniza em tempo real com o Firebase
- */
+function atualizarInterface() {
+    logVisual(`Renderizando ${noticiasExibidasCount} notícias...`);
+    Interface.renderizarNoticias(todasAsAnalisesLocais, noticiasExibidasCount);
+    forcarBotao();
+}
+
 function iniciarSyncNoticias() {
+    logVisual("Iniciando Sync com Firebase...");
     onSnapshot(collection(db, "analises"), (snapshot) => {
+        logVisual(`${snapshot.size} análises recebidas.`);
         todasAsAnalisesLocais = snapshot.docs
             .map(doc => ({ 
                 id: doc.id, 
@@ -113,16 +117,14 @@ function iniciarSyncNoticias() {
                 ...doc.data(),
                 videoPrincipal: doc.data().videoPrincipal?.replace("watch?v=", "embed/") || ""
             }))
-            .sort((a, b) => {
-                const dataA = a.lastUpdate ? new Date(a.lastUpdate) : 0;
-                const dataB = b.lastUpdate ? new Date(b.lastUpdate) : 0;
-                return dataB - dataA;
-            });
+            .sort((a, b) => (b.lastUpdate || 0) - (a.lastUpdate || 0));
         
         atualizarInterface();
     });
 }
 
-// Inicialização do sistema
+// Inicialização
+criarPainelLogs();
+logVisual("Sistema Iniciado.");
 carregarBlocoEditorial();
 iniciarSyncNoticias();
