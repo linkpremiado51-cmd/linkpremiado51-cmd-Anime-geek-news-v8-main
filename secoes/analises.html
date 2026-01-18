@@ -38,7 +38,22 @@
     </div>
   </div>
 
-  <script type="module" src="./modulos/modulos_analises/analises_principal.js"></script>
+  <script>
+    (function() {
+      console.log("Injetor: Forçando carregamento do módulo de análises...");
+      const scriptId = 'script-analises-loader';
+      // Remove se já existir para evitar duplicatas em navegação repetida
+      const oldScript = document.getElementById(scriptId);
+      if (oldScript) oldScript.remove();
+
+      const script = document.createElement('script');
+      script.id = scriptId;
+      script.type = 'module';
+      // Adicionamos um timestamp para evitar cache e garantir o recarregamento
+      script.src = './modulos/modulos_analises/analises_principal.js?v=' + Date.now();
+      document.body.appendChild(script);
+    })();
+  </script>
 
   <style>
     :root {
@@ -59,7 +74,6 @@
       --text-muted: #bbb;
     }
 
-    /* Estilos de Interface */
     .capa-editorial-block { width: 100%; padding: 0 16px; margin: 0 auto 32px auto; max-width: var(--container-w); }
     .capa-content-inner { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 30px; text-align: center; }
     .capa-title { font-size: clamp(1.8rem, 5vw, 2.5rem); font-weight: 900; color: var(--text-main); margin-bottom: 15px; }
@@ -70,7 +84,6 @@
     .btn-paginacao-geek { background: var(--card-bg); border: 1px solid var(--border); color: var(--text-main); padding: 12px 25px; border-radius: 50px; cursor: pointer; font-weight: 700; transition: 0.3s; margin: 20px auto; display: block; }
     .btn-paginacao-geek:hover { background: var(--text-main); color: var(--card-bg); }
 
-    /* Toast */
     #toast-copiado { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 30px; opacity: 0; transition: 0.3s; z-index: 10000; pointer-events: none; }
     #toast-copiado.mostrar { opacity: 1; }
 
