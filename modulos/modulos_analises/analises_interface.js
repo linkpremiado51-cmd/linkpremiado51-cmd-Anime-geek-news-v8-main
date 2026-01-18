@@ -1,9 +1,16 @@
 /**
  * ARQUIVO: modulos/modulos_analises/analises_interface.js
- * Interface Modularizada - Focada em renderização pura para evitar conflitos de DOM.
+ * Interface Modularizada - Versão com Botão Persistente e Logs Visuais
  */
 
 import { limparEspacos } from './analises_funcoes.js';
+
+// Função auxiliar para conversar com o painel de debug do principal.js
+function logInterface(msg) {
+    if (typeof window.logVisual === 'function') {
+        window.logVisual(msg);
+    }
+}
 
 /**
  * Cria o HTML da ficha técnica (grid de informações)
@@ -35,25 +42,28 @@ function criarRelacionadosHtml(newsId, relacionados) {
 }
 
 /**
- * Injeta o HTML do botão no placeholder fixo.
- * O evento de clique agora é gerenciado globalmente pelo analises_principal.js
+ * Injeta o HTML do botão no placeholder fixo de forma FORÇADA.
+ * Agora ele ignora contagens e aparece sempre.
  */
 export function renderizarBotaoPaginacao() {
     const paginationWrapper = document.getElementById('novo-pagination-modulo');
     
-    if (!paginationWrapper) return;
-
-    // Injeta apenas se o botão ainda não estiver lá para evitar cintilação (flicker)
-    if (!document.getElementById('btn-carregar-mais')) {
-        paginationWrapper.innerHTML = `
-            <div style="text-align: center; padding: 20px 0 60px 0; width: 100%;">
-                <button class="btn-paginacao-geek" id="btn-carregar-mais">
-                    <i class="fa-solid fa-chevron-down"></i>
-                    <span>Carregar mais análises</span>
-                </button>
-            </div>
-        `;
+    if (!paginationWrapper) {
+        logInterface("ERRO: Placeholder do botão não achado na interface.");
+        return;
     }
+
+    // Injeta sempre. Se já houver, ele apenas reforça o HTML.
+    paginationWrapper.innerHTML = `
+        <div style="text-align: center; padding: 20px 0 60px 0; width: 100%;">
+            <button class="btn-paginacao-geek" id="btn-carregar-mais">
+                <i class="fa-solid fa-chevron-down"></i>
+                <span>Carregar mais análises</span>
+            </button>
+        </div>
+    `;
+    
+    logInterface("Botão Injetado: Forçando exibição.");
 }
 
 /**
