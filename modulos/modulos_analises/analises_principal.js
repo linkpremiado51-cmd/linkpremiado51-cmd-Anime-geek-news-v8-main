@@ -74,16 +74,16 @@ function atualizarInterface() {
     // 1. Renderiza os cards no container principal
     Interface.renderizarNoticias(todasAsAnalisesLocais, noticiasExibidasCount);
     
-    // 2. Gerencia a exibição do botão de paginação
+    // 2. Gerencia a exibição do botão de paginação no placeholder fixo
     const temMaisParaCarregar = todasAsAnalisesLocais.length > noticiasExibidasCount;
+    const btnContainer = document.getElementById('novo-pagination-modulo');
 
     if (temMaisParaCarregar) {
-        // Usa a função robusta do analises_interface.js
+        // Usa a função robusta do analises_interface.js para injetar o botão no placeholder
         Interface.renderizarBotaoPaginacao(() => window.analises.carregarMaisNovo());
     } else {
-        // Remove o botão caso não haja mais itens
-        const btnContainer = document.getElementById('novo-pagination-modulo');
-        if (btnContainer) btnContainer.remove();
+        // Apenas limpa o conteúdo do container fixo em vez de removê-lo
+        if (btnContainer) btnContainer.innerHTML = '';
     }
 }
 
@@ -97,7 +97,6 @@ function iniciarSyncNoticias() {
                 id: doc.id, 
                 origem: 'analises', 
                 ...doc.data(),
-                // Garante que o link do YouTube seja compatível com iframe
                 videoPrincipal: doc.data().videoPrincipal?.replace("watch?v=", "embed/") || ""
             }))
             .sort((a, b) => {
