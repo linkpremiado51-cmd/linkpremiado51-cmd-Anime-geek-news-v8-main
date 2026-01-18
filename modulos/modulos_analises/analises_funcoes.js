@@ -1,6 +1,6 @@
 /**
  * modulos/modulos_analises/analises_funcoes.js
- * Funções utilitárias e suporte visual
+ * Funções utilitárias e suporte visual otimizadas
  */
 
 /**
@@ -27,42 +27,43 @@ export async function copiarLink(url) {
 }
 
 /**
- * Aciona o compartilhamento nativo ou fallback
+ * Aciona o compartilhamento nativo ou fallback para cópia
  */
 export function compartilharNoticia(titulo, url) {
     const shareData = { title: titulo, url: url };
     if (navigator.share && navigator.canShare(shareData)) {
-        navigator.share(shareData).catch(console.error);
+        navigator.share(shareData).catch(err => {
+            if (err.name !== 'AbortError') console.error(err);
+        });
     } else {
         copiarLink(url);
     }
 }
 
 /**
- * Altera o SRC de um iframe de vídeo (Sincronizado com lógica config-firebase.js)
+ * Altera o SRC de um iframe de vídeo de forma dinâmica
  */
 export function trocarVideo(idPlayer, idVideo) {
     const player = document.getElementById(idPlayer);
-    if (player && idVideo) {
-        // Aplica a lógica de parâmetros do sistema antigo para garantir o autoplay
-        const params = "?autoplay=1&mute=1&modestbranding=1";
-        
-        // Verifica se é um ID puro ou URL completa para formatar corretamente
-        let novoSrc = idVideo.includes('youtube.com') ? idVideo : `https://www.youtube.com/embed/${idVideo}`;
-        
-        // Se usar o proxy googleusercontent que você mencionou:
-        if (idVideo.startsWith('http://googleusercontent.com')) {
-             player.src = idVideo + params;
-        } else {
-             player.src = novoSrc + params;
-        }
+    if (!player || !idVideo) return;
+
+    const params = "?autoplay=1&mute=0&modestbranding=1&rel=0";
+    
+    // Formata o ID do vídeo para o padrão embed do YouTube caso não seja uma URL completa
+    let novoSrc = idVideo;
+    if (!idVideo.includes('http')) {
+        novoSrc = `https://www.youtube.com/embed/${idVideo}`;
     }
+    
+    // Adiciona os parâmetros de autoplay e interface
+    player.src = novoSrc.includes('?') ? `${novoSrc}&autoplay=1` : novoSrc + params;
 }
 
 /**
- * Gerencia o fechamento do modal e limpa a URL
+ * Gerencia o fechamento do modal e limpa a URL (ID da notícia)
  */
 export function fecharModalPrincipal() {
+    // Tenta usar a função global se existir, senão usa a lógica local
     if (window.fecharModal) {
         window.fecharModal();
     } else {
@@ -70,10 +71,11 @@ export function fecharModalPrincipal() {
         if (modal) modal.style.display = 'none';
     }
     
+    // Remove o parâmetro 'id' da URL sem recarregar a página
     const url = new URL(window.location);
     if (url.searchParams.has('id')) {
         url.searchParams.delete('id');
-        window.history.pushState({}, '', url.pathname);
+        window.history.pushState({}, '', url.pathname + url.search);
     }
 }
 
@@ -86,18 +88,22 @@ export function toggleComentarios(abrir = true, idNoticia = null) {
 
     if (abrir) {
         modalComentarios.style.display = 'flex';
+        // Pequeno delay para permitir a transição de opacidade/transform do CSS
         setTimeout(() => {
             modalComentarios.classList.add('active');
         }, 10);
-        document.body.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden'; // Trava o scroll do fundo
         
-        if (idNoticia) console.log("Carregando comentários para:", idNoticia);
+        if (idNoticia) {
+            console.log("Sistema Geek: Carregando discussão para:", idNoticia);
+            // Aqui você pode disparar a função de carregar comentários do Firebase
+        }
         
     } else {
         modalComentarios.classList.remove('active');
         setTimeout(() => {
             modalComentarios.style.display = 'none';
         }, 300);
-        document.body.style.overflow = 'auto';
+        document.body.style.overflow = 'auto'; // Libera o scroll
     }
 }
