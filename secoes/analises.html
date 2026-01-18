@@ -4,14 +4,14 @@
   <div id="capa-editorial" class="capa-editorial-block">
     <div class="capa-content-inner">
       <h1 id="capa-titulo" class="capa-title">Análises Profundas</h1>
-      <p id="capa-descricao" class="capa-desc">Exploramos além da superfície: crítica técnica, contexto de mercado, teorias e impacto cultural dos maiores fenômenos geek.</p>
-      
-      <div class="subcategorias-tags" id="subcategorias-container">
-        </div>
+      <p id="capa-descricao" class="capa-desc">Carregando editorial...</p>
+      <div class="subcategorias-tags" id="subcategorias-container"></div>
     </div>
   </div>
 
-  <div id="container-principal"></div>
+  <div id="container-principal">
+    <p style="text-align:center; padding:100px; color:var(--text-muted); opacity:0.5;">SINCRONIZANDO ANÁLISES...</p>
+  </div>
   
   <div id="pagination-control" style="text-align: center; padding: 30px; display: none;">
       <button id="btn-carregar-mais" class="btn-paginacao-geek">
@@ -20,20 +20,6 @@
   </div>
 
   <div id="toast-copiado">Link copiado!</div>
-
-  <div id="modal-noticia">
-    <div id="modal-conteudo">
-      <button id="modal-fechar" onclick="window.analises.fecharModal()">×</button>
-      <div id="modal-header-layout">
-         <div id="modal-titulo" class="destaque-titulo" style="margin-top: 0;"></div>
-         <div id="modal-categoria" class="destaque-categoria"></div>
-      </div>
-      <p id="modal-resumo" class="destaque-resumo"></p>
-      <a id="modal-link" class="btn-ver-artigo" target="_blank"><i class="fa-solid fa-book-open"></i> Ler artigo completo</a>
-      <div id="modal-ficha" class="destaque-info-grid"></div>
-      <iframe id="modal-video" allowfullscreen></iframe>
-    </div>
-  </div>
 
   <div id="modal-comentarios-geek" class="modal-geek-overlay">
     <div class="modal-geek-content">
@@ -44,10 +30,7 @@
         </div>
         <button onclick="window.analises.toggleComentarios(false)" class="btn-geek-close">×</button>
       </div>
-      
-      <div class="modal-geek-body" id="flow-comentarios">
-        </div>
-
+      <div class="modal-geek-body" id="flow-comentarios"></div>
       <div class="modal-geek-footer">
         <div class="input-wrapper-geek">
           <div class="mini-my-avatar" style="background: #333;">Eu</div>
@@ -58,10 +41,9 @@
     </div>
   </div>
 
-  <script type="module" src="modulos/modulos_analises/analises_principal.js"></script>
+  <script type="module" src="./modulos/modulos_analises/analises_principal.js"></script>
 
   <style>
-    /* Suas variáveis e estilos permanecem os mesmos conforme definido anteriormente */
     :root {
       --card-bg: #ffffff;
       --border: #e0e0e0;
@@ -80,19 +62,25 @@
       --text-muted: #bbb;
     }
 
-    /* ... Estilos de capa, botões e modais ... */
+    /* Estilos de Interface */
     .capa-editorial-block { width: 100%; padding: 0 16px; margin: 0 auto 32px auto; max-width: var(--container-w); }
-    .capa-content-inner { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
-    .capa-title { font-size: clamp(1.5rem, 4.5vw, 2.25rem); font-weight: 900; color: var(--text-main); margin: 0 0 12px 0; }
-    .capa-desc { font-size: clamp(0.95rem, 3.2vw, 1.125rem); color: var(--text-muted); line-height: 1.5; }
-    .subcat-tag { background: var(--bg); color: var(--text-main); padding: 6px 12px; border-radius: 50px; font-size: 0.8rem; font-weight: 700; display: inline-block; margin: 4px; }
+    .capa-content-inner { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 30px; text-align: center; }
+    .capa-title { font-size: clamp(1.8rem, 5vw, 2.5rem); font-weight: 900; color: var(--text-main); margin-bottom: 15px; }
+    .capa-desc { max-width: 700px; margin: 0 auto 20px auto; color: var(--text-muted); line-height: 1.6; }
     
-    #modal-noticia { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); z-index: 99999; padding: 15px; overflow-y: auto; }
-    #modal-conteudo { background: var(--card-bg); color: var(--text-main); max-width: 900px; margin: 30px auto; padding: 25px; border-radius: 8px; position: relative; }
-    #modal-video { width: 100%; aspect-ratio: 16 / 9; margin: 16px 0; border: none; }
+    .subcat-tag { background: var(--bg); color: var(--text-main); padding: 6px 15px; border-radius: 50px; font-size: 0.85rem; font-weight: 700; display: inline-block; margin: 5px; border: 1px solid var(--border); }
     
-    /* Toast e Scrollbar */
-    #toast-copiado { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 8px 16px; border-radius: 20px; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+    .btn-paginacao-geek { background: var(--card-bg); border: 1px solid var(--border); color: var(--text-main); padding: 12px 25px; border-radius: 50px; cursor: pointer; font-weight: 700; transition: 0.3s; }
+    .btn-paginacao-geek:hover { background: var(--text-main); color: var(--card-bg); }
+
+    /* Toast */
+    #toast-copiado { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 30px; opacity: 0; transition: 0.3s; z-index: 10000; pointer-events: none; }
     #toast-copiado.mostrar { opacity: 1; }
+
+    /* Estilos do Feed de Análises (Ajustados para o seu layout) */
+    .destaque-secao { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 40px; overflow: hidden; max-width: var(--container-w); margin-left: auto; margin-right: auto; }
+    .destaque-padding { padding: 25px; }
+    .destaque-titulo { font-size: 1.8rem; font-weight: 800; margin: 10px 0; color: var(--text-main); line-height: 1.2; }
+    .destaque-media iframe { width: 100%; aspect-ratio: 16/9; border: none; display: block; }
   </style>
 </div>
