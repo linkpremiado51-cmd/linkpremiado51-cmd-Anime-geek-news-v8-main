@@ -1,29 +1,12 @@
 <div class="destaque-wrapper">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
-  <div id="notificacao-novo-artigo">
-    <i class="fa-solid fa-satellite-dish"></i>
-    <div>
-      <div style="font-size: 10px; font-weight: 800; opacity: 0.8; text-transform: uppercase;">Atualização via Cloud</div>
-      <div id="novo-artigo-titulo" style="font-size: 13px; font-weight: 700;">Conectando ao AniGeek...</div>
-    </div>
-  </div>
-
   <div id="container-principal"></div>
   
   <div id="pagination-control" style="text-align: center; padding: 30px; display: none;">
       <button id="btn-carregar-mais" class="btn-paginacao-geek">
           <i class="fa-solid fa-chevron-down"></i> Carregar mais conteúdos
       </button>
-  </div>
-
-  <div id="notificacao-video">
-    <div style="flex: 1;">
-      <div style="font-size: 10px; font-weight: 800; opacity: 0.6; text-transform: uppercase;">Deseja assistir?</div>
-      <div id="notif-titulo" style="font-size: 13px; font-weight: 700;">Título</div>
-    </div>
-    <button class="btn-confirmar-video" id="btn-confirmar">Confirmar</button>
-    <i class="fa-solid fa-xmark" style="cursor:pointer; padding: 5px;" onclick="window.fecharNotif()"></i>
   </div>
 
   <div id="toast-copiado">Link copiado!</div>
@@ -100,8 +83,6 @@
     // Variáveis
     let todasAsNoticias = [];
     let noticiasExibidas = 5;
-    let playerAlvo = '';
-    let urlAlvo = '';
 
     // --- FUNÇÕES UTILITÁRIAS ---
     function limparEspacos(url) {
@@ -125,30 +106,15 @@
       } catch (err) { console.error("Erro copiar:", err); }
     };
 
-    // --- LÓGICA DE TROCA DE VÍDEO (RESTAURADA) ---
-    window.pedirTroca = (idPlayer, idVideo, titulo, cor) => {
-      playerAlvo = idPlayer;
-      urlAlvo = `https://www.youtube.com/embed/${idVideo}?autoplay=1`;
-      const notif = document.getElementById('notificacao-video');
-      document.getElementById('notif-titulo').innerText = titulo;
-      notif.style.setProperty('--notif-cor', cor);
-      notif.classList.add('visivel');
+    // --- LÓGICA DE TROCA DE VÍDEO INSTANTÂNEA ---
+    window.trocarVideoInstantaneo = (idPlayer, idVideo) => {
+      const player = document.getElementById(idPlayer);
+      if (player) {
+        player.src = `https://www.youtube.com/embed/${idVideo}?autoplay=1`;
+      }
     };
 
-    window.fecharNotif = () => {
-      document.getElementById('notificacao-video').classList.remove('visivel');
-    };
-
-    const btnConfirmar = document.getElementById('btn-confirmar');
-    if(btnConfirmar) {
-        btnConfirmar.onclick = () => {
-          const player = document.getElementById(playerAlvo);
-          if (player) player.src = urlAlvo;
-          window.fecharNotif();
-        };
-    }
-
-    // --- LÓGICA DO MODAL DE PESQUISA/LINK (RESTAURADA) ---
+    // --- LÓGICA DO MODAL DE PESQUISA/LINK ---
     window.fecharModal = () => {
       document.getElementById('modal-noticia').style.display = 'none';
       document.getElementById('modal-video').src = ""; // Para o vídeo
@@ -278,7 +244,7 @@
             <div class="carrossel-header"><span class="temas-label">Vídeos Relacionados</span></div>
             <div class="temas-scroll-wrapper"><div class="temas-container">
                 ${news.relacionados ? news.relacionados.map(rel => `
-                  <div class="tema-card" onclick="window.pedirTroca('player-${news.id}', '${rel.idVid}', '${rel.titulo.replace(/'/g, "\\'")}', '${news.cor}')">
+                  <div class="tema-card" onclick="window.trocarVideoInstantaneo('player-${news.id}', '${rel.idVid}')">
                     <img src="${limparEspacos(rel.thumb)}" class="tema-thumb">
                     <div class="tema-titulo">${rel.titulo}</div>
                   </div>`).join('') : ''}
@@ -327,10 +293,6 @@
         todasAsNoticias = [...noticiasFB];
         todasAsNoticias.sort((a, b) => (b.data || 0) - (a.data || 0));
 
-        if(todasAsNoticias.length > 0) {
-            document.getElementById('novo-artigo-titulo').innerText = todasAsNoticias[0].titulo;
-        }
-
         renderizarNoticias();
         verificarNoticiaNaUrl(); // Checa se precisa abrir o modal de pesquisa
       });
@@ -340,7 +302,7 @@
   </script>
 
   <style>
-    /* --- CSS DO MODAL DE PESQUISA (RESTAURADO) --- */
+    /* --- CSS DO MODAL DE PESQUISA --- */
     #modal-noticia {
       display: none;
       position: fixed;
@@ -500,5 +462,25 @@
     .mini-my-avatar { width: 24px; height: 24px; border-radius: 50%; display:flex; align-items:center; justify-content:center; color:white; font-size:10px; }
     .input-wrapper-geek input { flex: 1; background: transparent; border: none; outline: none; font-size: 14px; }
     .btn-send-geek { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 16px; }
+
+    /* Toast de cópia */
+    #toast-copiado {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 14px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    #toast-copiado.mostrar {
+      opacity: 1;
+    }
   </style>
 </div>
+
