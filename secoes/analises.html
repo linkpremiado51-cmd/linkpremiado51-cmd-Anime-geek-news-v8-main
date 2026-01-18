@@ -1,26 +1,21 @@
-
 <div class="destaque-wrapper">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
-  <!-- CAPA EDITÁVEL (estilo Facebook, totalmente responsiva) -->
-  <div id="capa-editavel" class="capa-facebook-style">
-    <div class="capa-overlay"></div>
-    <div class="capa-content">
-      <h1 id="capa-titulo">Título da Capa</h1>
-      <p id="capa-descricao">Descrição da capa que pode ser editada diretamente no Firebase.</p>
+  <!-- CAPA EDITORIAL — Estilo AniGeekNews v7 -->
+  <div id="capa-editorial" class="capa-editorial-block">
+    <div class="capa-content-inner">
+      <h1 id="capa-titulo" class="capa-title">Análises Profundas</h1>
+      <p id="capa-descricao" class="capa-desc">Exploramos além da superfície: crítica técnica, contexto de mercado, teorias e impacto cultural dos maiores fenômenos geek.</p>
       
-      <!-- Subcategorias fixas -->
-      <div class="subcategorias-lista">
-        <span>Opinião</span>
-        <span>Crítica Técnica</span>
-        <span>Análise de Mercado</span>
-        <span>Comparativos</span>
-        <span>Teorias</span>
-        <span>Explicações</span>
-        <span>Impacto na Indústria</span>
+      <div class="subcategorias-tags">
+        <span class="subcat-tag">Opinião</span>
+        <span class="subcat-tag">Crítica Técnica</span>
+        <span class="subcat-tag">Análise de Mercado</span>
+        <span class="subcat-tag">Comparativos</span>
+        <span class="subcat-tag">Teorias</span>
+        <span class="subcat-tag">Explicações</span>
+        <span class="subcat-tag">Impacto na Indústria</span>
       </div>
-      
-      <button id="btn-editar-capa" class="btn-editar"><i class="fa-solid fa-pen"></i> Editar Capa</button>
     </div>
   </div>
 
@@ -188,10 +183,9 @@
         const capaSnap = await getDoc(capaRef);
         if (capaSnap.exists()) {
           const data = capaSnap.data();
-          document.getElementById('capa-titulo').textContent = data.titulo || 'Título da Capa';
-          document.getElementById('capa-descricao').textContent = data.descricao || 'Descrição da capa que pode ser editada diretamente no Firebase.';
+          document.getElementById('capa-titulo').textContent = data.titulo || 'Análises Profundas';
+          document.getElementById('capa-descricao').textContent = data.descricao || 'Exploramos além da superfície: crítica técnica, contexto de mercado, teorias e impacto cultural dos maiores fenômenos geek.';
         }
-        // Mesmo sem dados, os valores padrão permanecem visíveis
       } catch (error) {
         console.error("Erro ao carregar capa:", error);
       }
@@ -307,97 +301,76 @@
   </script>
 
   <style>
-    /* --- CAPA RESPONSIVA ESTILO FACEBOOK --- */
-    .capa-facebook-style {
-      min-height: 220px;
-      height: 40vh;
-      max-height: 320px;
-      background: linear-gradient(135deg, #4361ee, #3a0ca3);
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      margin-bottom: 30px;
-      border-radius: 0 0 20px 20px;
-      overflow: hidden;
+    /* ======================================================
+       CAPA EDITORIAL — ANIGEEKNEWS v7 STYLE
+    ====================================================== */
+    .capa-editorial-block {
+      margin-bottom: 32px;
+      padding: 0 24px;
+      max-width: var(--container-w, 1200px);
+      margin-left: auto;
+      margin-right: auto;
     }
-    
-    .capa-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.2);
+
+    .capa-content-inner {
+      background: var(--card-bg, #ffffff);
+      border: 1px solid var(--border, #e0e0e0);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     }
-    
-    .capa-content {
-      text-align: center;
-      z-index: 2;
-      padding: 1.5rem;
-      width: 100%;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
+
+    body.dark-mode .capa-content-inner {
+      background: #1a1a1a;
+      border-color: #333;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
-    
-    .capa-content h1 {
-      font-size: clamp(1.6rem, 6vw, 2.6rem);
-      margin: 0;
-      font-weight: 800;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+
+    .capa-title {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--text-main, #121212);
+      margin: 0 0 12px 0;
       line-height: 1.2;
+      letter-spacing: -0.5px;
     }
-    
-    .capa-content p {
-      font-size: clamp(0.95rem, 3.8vw, 1.25rem);
-      max-width: 650px;
-      margin: 0 auto;
+
+    body.dark-mode .capa-title {
+      color: #fff;
+    }
+
+    .capa-desc {
+      font-size: 16px;
+      color: var(--text-muted, #555);
+      margin: 0 0 20px 0;
       line-height: 1.5;
-      opacity: 0.95;
+    }
+
+    body.dark-mode .capa-desc {
+      color: #bbb;
     }
 
     /* --- SUBCATEGORIAS --- */
-    .subcategorias-lista {
+    .subcategorias-tags {
       display: flex;
       flex-wrap: wrap;
-      justify-content: center;
-      gap: 12px;
-      margin: 0.5rem 0;
-      max-width: 650px;
-    }
-    
-    .subcategorias-lista span {
-      background: rgba(255,255,255,0.2);
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: clamp(0.75rem, 2.5vw, 0.9rem);
-      font-weight: 600;
-      backdrop-filter: blur(2px);
+      gap: 10px;
+      margin-top: 8px;
     }
 
-    .btn-editar {
-      background: rgba(255,255,255,0.2);
-      border: 2px solid white;
-      color: white;
-      padding: 0.6rem 1.5rem;
-      border-radius: 30px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      font-size: clamp(0.85rem, 2.8vw, 1rem);
-      margin-top: 0.5rem;
+    .subcat-tag {
+      background: var(--bg, #f8f9fa);
+      color: var(--text-main, #333);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
     }
-    
-    .btn-editar:hover {
-      background: rgba(255,255,255,0.3);
-      transform: translateY(-2px);
-    }
-    
-    .btn-editar i {
-      margin-right: 8px;
+
+    body.dark-mode .subcat-tag {
+      background: #252525;
+      color: #ddd;
     }
 
     /* --- RESTANTE DO CSS (sem alterações essenciais) --- */
@@ -452,7 +425,7 @@
         display: flex; align-items: center; gap: 10px; font-size: 13px;
         border-bottom: 1px solid #f5f5f5; font-weight: 500;
     }
-    .dropdown-conteudo a:hover { background-color: #f9f9f9; color: #4361ee; }
+    .dropdown-conteudo a:hover { background-color: #f9f9f9; color: #8A2BE2; }
     .dropdown-conteudo hr { margin: 0; border: none; border-top: 1px solid #eee; }
 
     .premium-actions-bar {
@@ -561,7 +534,7 @@
     }
     .mini-my-avatar { width: 24px; height: 24px; border-radius: 50%; display:flex; align-items:center; justify-content:center; color:white; font-size:10px; }
     .input-wrapper-geek input { flex: 1; background: transparent; border: none; outline: none; font-size: 14px; }
-    .btn-send-geek { background: none; border: none; color: #4361ee; cursor: pointer; font-size: 16px; }
+    .btn-send-geek { background: none; border: none; color: #8A2BE2; cursor: pointer; font-size: 16px; }
 
     #toast-copiado {
       position: fixed;
@@ -581,29 +554,42 @@
       opacity: 1;
     }
 
-    /* --- RESPONSIVIDADE ADICIONAL --- */
+    /* Variáveis de tema para compatibilidade */
+    :root {
+      --card-bg: #ffffff;
+      --border: #e0e0e0;
+      --bg: #f8f9fa;
+      --text-main: #121212;
+      --text-muted: #555;
+      --container-w: 1200px;
+    }
+
+    body.dark-mode {
+      --card-bg: #1a1a1a;
+      --border: #333;
+      --bg: #252525;
+      --text-main: #fff;
+      --text-muted: #bbb;
+    }
+
     @media (max-width: 768px) {
-      .capa-facebook-style {
-        border-radius: 0;
-        margin-bottom: 20px;
-        height: auto;
-        min-height: 240px;
+      .capa-editorial-block {
+        padding: 0 16px;
       }
-      .subcategorias-lista {
-        gap: 8px;
+      .capa-content-inner {
+        padding: 20px;
       }
-      .subcategorias-lista span {
-        font-size: 0.75rem;
-        padding: 5px 12px;
+      .capa-title {
+        font-size: 24px;
       }
-      .premium-actions-bar {
-        flex-wrap: wrap;
-        justify-content: center;
+      .capa-desc {
+        font-size: 15px;
       }
-      .btn-premium-icon {
+      .subcat-tag {
         font-size: 11px;
-        padding: 6px 10px;
+        padding: 5px 12px;
       }
     }
   </style>
 </div>
+
