@@ -39,22 +39,30 @@ export function compartilharNoticia(titulo, url) {
 }
 
 /**
- * Altera o SRC de um iframe de vídeo (Proxy de imagem/vídeo do Google)
+ * Altera o SRC de um iframe de vídeo (Sincronizado com lógica config-firebase.js)
  */
 export function trocarVideo(idPlayer, idVideo) {
     const player = document.getElementById(idPlayer);
     if (player && idVideo) {
-        // Ajustado para o padrão de proxy que você utiliza
-        player.src = `https://www.youtube.com/embed/$${idVideo}?autoplay=1`;
+        // Aplica a lógica de parâmetros do sistema antigo para garantir o autoplay
+        const params = "?autoplay=1&mute=1&modestbranding=1";
+        
+        // Verifica se é um ID puro ou URL completa para formatar corretamente
+        let novoSrc = idVideo.includes('youtube.com') ? idVideo : `https://www.youtube.com/embed/${idVideo}`;
+        
+        // Se usar o proxy googleusercontent que você mencionou:
+        if (idVideo.startsWith('http://googleusercontent.com')) {
+             player.src = idVideo + params;
+        } else {
+             player.src = novoSrc + params;
+        }
     }
 }
 
 /**
  * Gerencia o fechamento do modal e limpa a URL
- * Integrado ao sistema de navegação global
  */
 export function fecharModalPrincipal() {
-    // Tenta chamar a função global de fechar modal do index.html
     if (window.fecharModal) {
         window.fecharModal();
     } else {
@@ -62,7 +70,6 @@ export function fecharModalPrincipal() {
         if (modal) modal.style.display = 'none';
     }
     
-    // Limpa o ID da URL de forma limpa
     const url = new URL(window.location);
     if (url.searchParams.has('id')) {
         url.searchParams.delete('id');
@@ -72,27 +79,22 @@ export function fecharModalPrincipal() {
 
 /**
  * Controla o modal de comentários da comunidade
- * Ajustado para corrigir o erro visual das imagens enviadas
  */
 export function toggleComentarios(abrir = true, idNoticia = null) {
     const modalComentarios = document.getElementById('modal-comentarios-geek');
     if (!modalComentarios) return;
 
     if (abrir) {
-        // Primeiro garante que o container existe visualmente
         modalComentarios.style.display = 'flex';
-        // Pequeno delay para a transição CSS 'active' funcionar suavemente
         setTimeout(() => {
             modalComentarios.classList.add('active');
         }, 10);
         document.body.style.overflow = 'hidden';
         
-        // Se houver um ID, você pode disparar a carga de comentários aqui futuramente
         if (idNoticia) console.log("Carregando comentários para:", idNoticia);
         
     } else {
         modalComentarios.classList.remove('active');
-        // Espera a animação de saída (0.3s) antes de esconder o display
         setTimeout(() => {
             modalComentarios.style.display = 'none';
         }, 300);
