@@ -1,6 +1,6 @@
 /**
  * modulos/modulos_analises/analises_principal.js
- * Correção: Busca simplificada para garantir exibição das notícias
+ * Correção definitiva: Mapeamento do campo 'lastUpdate' para ordenação
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -56,7 +56,7 @@ async function carregarBlocoEditorial() {
             const tituloEl = document.getElementById('capa-titulo');
             const descEl = document.getElementById('capa-descricao');
             
-            if (tituloEl) tituloEl.textContent = data.titulo || "Análises Profundas";
+            if (tituloEl) tituloEl.textContent = data.titulo || "Análises";
             if (descEl) descEl.textContent = data.descricao || "";
 
             if (data.subcategorias) {
@@ -69,23 +69,24 @@ async function carregarBlocoEditorial() {
 }
 
 function iniciarSyncNoticias() {
-    // Busca a coleção sem query restritiva para garantir que os dados cheguem
+    // Usamos a coleção pura para evitar erros de índice/query do Firebase
     const colRef = collection(db, "analises");
     
     onSnapshot(colRef, (snapshot) => {
         const noticiasFB = [];
         snapshot.forEach((doc) => {
+            const dados = doc.data();
             noticiasFB.push({ 
                 id: doc.id, 
                 origem: 'analises', 
-                ...doc.data() 
+                ...dados 
             });
         });
         
-        // Ordenação manual para evitar erro de índice do Firebase
+        // Ordenação manual usando o campo 'lastUpdate' que vimos no seu Firebase
         todasAsNoticias = noticiasFB.sort((a, b) => {
-            const dataA = a.data || 0;
-            const dataB = b.data || 0;
+            const dataA = a.lastUpdate ? new Date(a.lastUpdate) : 0;
+            const dataB = b.lastUpdate ? new Date(b.lastUpdate) : 0;
             return dataB - dataA;
         });
         
@@ -104,6 +105,6 @@ function vincularEventosInterface() {
     }
 }
 
-// Inicialização imediata
+// Inicialização imediata das funções
 carregarBlocoEditorial();
 iniciarSyncNoticias();
