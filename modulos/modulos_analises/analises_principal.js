@@ -1,6 +1,6 @@
 /**
  * modulos/modulos_analises/analises_principal.js
- * Novo Sistema de Paginação Independente
+ * Sistema de Paginação Dinâmico e Independente
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -32,27 +32,52 @@ window.analises = {
         if (noticia && window.abrirModalNoticia) window.abrirModalNoticia(noticia);
     },
 
-    // Nova função de carregar mais independente
+    // Função que gerencia o novo botão dinâmico
     carregarMaisNovo: () => {
         noticiasExibidasCount += 5;
         atualizarInterface();
     }
 };
 
+// Restaurado: Carrega o título e descrição da capa
+async function carregarBlocoEditorial() {
+    const blocoRef = doc(db, "sobre_nos", "analises_bloco_1");
+    try {
+        const snap = await getDoc(blocoRef);
+        if (snap.exists()) {
+            const data = snap.data();
+            const tituloEl = document.getElementById('capa-titulo');
+            const descEl = document.getElementById('capa-descricao');
+            const containerTags = document.getElementById('subcategorias-container');
+            
+            if (tituloEl) tituloEl.textContent = data.titulo || "Análises";
+            if (descEl) descEl.textContent = data.descricao || "";
+            if (containerTags && data.subcategorias) {
+                containerTags.innerHTML = data.subcategorias.map(tag => 
+                    `<span class="subcat-tag">${tag}</span>`
+                ).join('');
+            }
+        }
+    } catch (error) { console.error("Erro editorial:", error); }
+}
+
 function atualizarInterface() {
-    // Renderiza a lista
+    // 1. Renderiza os cards (Interface.js limpa o container automaticamente)
     Interface.renderizarNoticias(todasAsAnalisesLocais, noticiasExibidasCount);
     
-    // Injeta o NOVO botão se houver mais conteúdo
+    // 2. Lógica do Novo Botão Dinâmico
     const container = document.getElementById('container-principal');
+    if (!container) return;
+
     if (todasAsAnalisesLocais.length > noticiasExibidasCount) {
         const btnHtml = `
-            <div id="novo-pagination-modulo" style="text-align: center; padding: 40px 0;">
+            <div id="novo-pagination-modulo" style="text-align: center; padding: 40px 0; width: 100%;">
                 <button class="btn-paginacao-geek" onclick="window.analises.carregarMaisNovo()">
-                    <i class="fa-solid fa-plus"></i> Carregar Mais Análises
+                    <i class="fa-solid fa-chevron-down"></i> Carregar Mais Análises
                 </button>
             </div>
         `;
+        // Insere o botão logo após a última notícia renderizada
         container.insertAdjacentHTML('beforeend', btnHtml);
     }
 }
@@ -60,12 +85,23 @@ function atualizarInterface() {
 function iniciarSyncNoticias() {
     onSnapshot(collection(db, "analises"), (snapshot) => {
         todasAsAnalisesLocais = snapshot.docs
-            .map(doc => ({ id: doc.id, origem: 'analises', ...doc.data() }))
-            .sort((a, b) => (new Date(b.lastUpdate || 0)) - (new Date(a.lastUpdate || 0)));
+            .map(doc => ({ 
+                id: doc.id, 
+                origem: 'analises', 
+                ...doc.data(),
+                // Garante que o vídeo principal esteja formatado para embed
+                videoPrincipal: doc.data().videoPrincipal?.replace("watch?v=", "embed/") || ""
+            }))
+            .sort((a, b) => {
+                const dataA = a.lastUpdate ? new Date(a.lastUpdate) : 0;
+                const dataB = b.lastUpdate ? new Date(b.lastUpdate) : 0;
+                return dataB - dataA;
+            });
         
         atualizarInterface();
     });
 }
 
-// Inicialização
+// Inicialização completa
+carregarBlocoEditorial();
 iniciarSyncNoticias();
