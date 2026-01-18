@@ -1,14 +1,13 @@
 /**
  * modulos/modulos_analises/analises_principal.js
- * Editado para integração total com AniGeekNews SPA
+ * Correção: Filtro de coleção e persistência de eventos do botão
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, doc, getDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import * as Funcoes from './analises_funcoes.js';
 import * as Interface from './analises_interface.js';
 
-// Reutilizamos a config do Firebase (Poderia vir do config-firebase.js global também)
 const firebaseConfig = {
     apiKey: "AIzaSyBC_ad4X9OwCHKvcG_pNQkKEl76Zw2tu6o",
     authDomain: "anigeeknews.firebaseapp.com",
@@ -25,16 +24,12 @@ const db = getFirestore(app);
 let todasAsNoticias = [];
 let noticiasExibidasCount = 5;
 
-/**
- * Expõe para o window usando o namespace 'analises'
- * Agora integrado com o Modal Global do seu modal-manager.js
- */
 window.analises = {
     copiarLink: Funcoes.copiarLink,
     compartilhar: Funcoes.compartilharNoticia,
     trocarVideo: Funcoes.trocarVideo,
+    toggleComentarios: Funcoes.toggleComentarios,
     
-    // Agora chama o modal global do seu sistema
     abrirNoModalGlobal: (id) => {
         const noticia = todasAsNoticias.find(n => n.id === id);
         if (noticia && window.abrirModalNoticia) {
@@ -45,12 +40,11 @@ window.analises = {
     carregarMais: () => {
         noticiasExibidasCount += 5;
         Interface.renderizarNoticias(todasAsNoticias, noticiasExibidasCount);
+        // Re-vincula após renderizar para garantir que o botão atualizado funcione
+        vincularEventosInterface();
     }
 };
 
-/**
- * Carrega o cabeçalho editorial personalizado
- */
 async function carregarBlocoEditorial() {
     const blocoRef = doc(db, "sobre_nos", "analises_bloco_1");
     try {
@@ -63,8 +57,8 @@ async function carregarBlocoEditorial() {
             const tituloEl = document.getElementById('capa-titulo');
             const descEl = document.getElementById('capa-descricao');
             
-            if (tituloEl) tituloEl.textContent = data.titulo?.trim();
-            if (descEl) descEl.textContent = data.descricao?.trim();
+            if (tituloEl) tituloEl.textContent = data.titulo || "Análises Profundas";
+            if (descEl) descEl.textContent = data.descricao || "";
 
             if (data.subcategorias) {
                 container.innerHTML = data.subcategorias.map(tag => 
@@ -72,41 +66,44 @@ async function carregarBlocoEditorial() {
                 ).join('');
             }
         }
-    } catch (error) {
-        console.error("Erro editorial:", error);
-    }
+    } catch (error) { console.error("Erro editorial:", error); }
 }
 
-/**
- * Escuta mudanças no Firestore (Coleção: analises)
- */
 function iniciarSyncNoticias() {
-    const q = collection(db, "analises");
+    // query explícita para garantir que pegamos APENAS a coleção 'analises'
+    const q = query(collection(db, "analises"), orderBy("data", "desc"));
+    
     onSnapshot(q, (snapshot) => {
-        const noticiasFB = [];
+        todasAsNoticias = []; // Limpa para evitar duplicatas de outras execuções
         snapshot.forEach((doc) => {
-            // Normalização básica para garantir que o modal global entenda a origem
-            const data = doc.data();
-            noticiasFB.push({ 
+            todasAsNoticias.push({ 
                 id: doc.id, 
-                origem: 'analises', // Importante para o seu modal-manager.js
-                ...data 
+                origem: 'analises', 
+                ...doc.data() 
             });
         });
         
-        todasAsNoticias = noticiasFB.sort((a, b) => (b.data || 0) - (a.data || 0));
-        
-        // Renderiza na seção 'analises.html'
         Interface.renderizarNoticias(todasAsNoticias, noticiasExibidasCount);
+        vincularEventosInterface();
     });
 }
 
-// INICIALIZAÇÃO IMEDIATA (Essencial para o seu sistema de fetch)
-carregarBlocoEditorial();
-iniciarSyncNoticias();
-
-// Vincula o botão "Carregar Mais" se ele existir no DOM
-const btnMais = document.getElementById('btn-carregar-mais');
-if (btnMais) {
-    btnMais.onclick = () => window.analises.carregarMais();
+/**
+ * Função de segurança para garantir que o botão de carregar mais
+ * sempre funcione, mesmo após o fetch do HTML.
+ */
+function vincularEventosInterface() {
+    const btnMais = document.getElementById('btn-carregar-mais');
+    if (btnMais) {
+        btnMais.onclick = (e) => {
+            e.preventDefault();
+            window.analises.carregarMais();
+        };
+    }
 }
+
+// Inicialização com atraso curto para garantir que o DOM injetado via fetch esteja pronto
+setTimeout(() => {
+    carregarBlocoEditorial();
+    iniciarSyncNoticias();
+}, 100);
