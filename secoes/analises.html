@@ -17,24 +17,6 @@
 
   <div id="novo-pagination-modulo" style="min-height: 150px; width: 100%; clear: both; display: block;"></div>
   
-  <div id="modal-comentarios-global" class="modal-comentarios-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999999; justify-content: center; align-items: center; padding: 15px;">
-    <div class="modal-comentarios-container" style="background: var(--card-bg); width: 100%; max-width: 500px; border-radius: 15px; overflow: hidden; display: flex; flex-direction: column; max-height: 90vh; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-      
-      <div class="modal-comentarios-header" style="padding: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--card-bg);">
-        <h3 style="margin:0; font-size: 1.1rem;"><i class="fas fa-comments" style="color: #8A2BE2;"></i> Discussão</h3>
-        <button id="btn-fechar-comentarios" class="btn-close-comentarios" style="background: none; border: none; font-size: 1.8rem; color: var(--text-main); cursor: pointer; line-height: 1;">&times;</button>
-      </div>
-
-      <div id="lista-comentarios-global" class="modal-comentarios-body" style="flex: 1; overflow-y: auto; padding: 15px; min-height: 200px;">
-          </div>
-
-      <div class="modal-comentarios-footer" style="padding: 15px; border-top: 1px solid var(--border); display: flex; gap: 10px; background: var(--card-bg);">
-        <input type="text" id="input-novo-comentario" placeholder="Escreva sua opinião..." style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text-main); outline: none;">
-        <button id="btn-enviar-comentario" style="background: #8A2BE2; color: white; border: none; width: 45px; height: 45px; border-radius: 8px; cursor: pointer;"><i class="fas fa-paper-plane"></i></button>
-      </div>
-    </div>
-  </div>
-
   <div id="toast-copiado">Link copiado!</div>
 
   <script>
@@ -42,11 +24,13 @@
       console.log("Injetor: Iniciando carregamento dos módulos...");
       const timestamp = Date.now();
 
+      // 1. Carrega o Módulo de Comentários primeiro (de forma independente)
       const scriptComentarios = document.createElement('script');
       scriptComentarios.type = 'module';
       scriptComentarios.src = './comentarios_de_secao/comentarios_principal.js?v=' + timestamp;
       document.body.appendChild(scriptComentarios);
 
+      // 2. Reinicia e carrega o Módulo de Análises
       const scriptId = 'script-analises-loader';
       const oldScript = document.getElementById(scriptId);
       if (oldScript) oldScript.remove();

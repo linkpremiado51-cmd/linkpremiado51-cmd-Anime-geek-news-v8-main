@@ -1,14 +1,34 @@
 /**
  * ARQUIVO: modulos/modulos_analises/analises_principal.js
- * STATUS: Unificado (Controle total de Notícias e Comentários)
+ * Sistema com Logs Visuais e Botão de Paginação Forçado
+ * Versão Restaurada - Estável
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, getDoc, query, orderBy, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import * as Funcoes from './analises_funcoes.js';
 import * as Interface from './analises_interface.js';
 
-// --- CONFIGURAÇÃO E LOGS ---
+// --- SISTEMA DE LOGS VISUAIS PARA CELULAR ---
+function criarPainelLogs() {
+    if (document.getElementById('debug-mobile')) return;
+    const panel = document.createElement('div');
+    panel.id = 'debug-mobile';
+    panel.style = "position:fixed; top:0; left:0; width:100%; background:rgba(0,0,0,0.8); color:#0f0; font-family:monospace; font-size:10px; z-index:99999; padding:5px; pointer-events:none; max-height:100px; overflow:hidden;";
+    document.body.appendChild(panel);
+}
+
+window.logVisual = function(msg) {
+    const panel = document.getElementById('debug-mobile');
+    if (panel) {
+        const line = document.createElement('div');
+        line.textContent = `> ${new Date().toLocaleTimeString()}: ${msg}`;
+        panel.prepend(line);
+    }
+    console.log(msg);
+};
+// --------------------------------------------
+
 const firebaseConfig = {
     apiKey: "AIzaSyBC_ad4X9OwCHKvcG_pNQkKEl76Zw2tu6o",
     authDomain: "anigeeknews.firebaseapp.com",
@@ -24,138 +44,117 @@ const db = getFirestore(app);
 
 let todasAsAnalisesLocais = [];
 let noticiasExibidasCount = 5;
-let idComentariosAtivo = null;
-let unsubscribeComentarios = null;
 
-// --- SISTEMA DE LOGS ---
-function criarPainelLogs() {
-    if (document.getElementById('debug-mobile')) return;
-    const panel = document.createElement('div');
-    panel.id = 'debug-mobile';
-    panel.style = "position:fixed; top:0; left:0; width:100%; background:rgba(0,0,0,0.8); color:#0f0; font-family:monospace; font-size:10px; z-index:999999; padding:5px; pointer-events:none; max-height:60px; overflow:hidden;";
-    document.body.appendChild(panel);
-}
-
-window.logVisual = (msg) => {
-    const panel = document.getElementById('debug-mobile');
-    if (panel) {
-        const line = document.createElement('div');
-        line.textContent = `> ${msg}`;
-        panel.prepend(line);
-    }
-};
-
-// --- LÓGICA UNIFICADA DE COMENTÁRIOS ---
-
-async function carregarMensagensFirebase(id) {
-    if (unsubscribeComentarios) unsubscribeComentarios();
-    idComentariosAtivo = id;
-
-    const colRef = collection(db, "analises", id, "comentarios");
-    const q = query(colRef, orderBy("data", "asc"));
-
-    unsubscribeComentarios = onSnapshot(q, (snapshot) => {
-        const comentarios = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        Interface.renderizarListaComentarios(comentarios);
-    });
-}
-
-async function enviarMensagemFirebase() {
-    const input = document.getElementById('input-novo-comentario');
-    if (!input || !input.value.trim() || !idComentariosAtivo) return;
-
-    const texto = input.value.trim();
-    input.value = ""; // Limpeza rápida
-
-    try {
-        await addDoc(collection(db, "analises", idComentariosAtivo, "comentarios"), {
-            autor: "Leitor Geek",
-            texto: texto,
-            data: serverTimestamp()
-        });
-    } catch (e) {
-        window.logVisual("Erro ao comentar.");
-    }
-}
-
-// --- API GLOBAL ---
 window.analises = {
     ...Funcoes,
-    
-    abrirComentarios: (id) => {
-        const modal = document.getElementById('modal-comentarios-global');
-        if (!modal) return;
-
-        modal.style.display = 'flex';
-        setTimeout(() => modal.classList.add('active'), 10);
-        document.body.style.overflow = 'hidden';
-        
-        carregarMensagensFirebase(id);
-        window.logVisual("Discussão: " + id);
+    abrirNoModalGlobal: (id) => {
+        const noticia = todasAsAnalisesLocais.find(n => n.id === id);
+        if (noticia && window.abrirModalNoticia) window.abrirModalNoticia(noticia);
     },
-
-    fecharComentarios: () => {
-        const modal = document.getElementById('modal-comentarios-global');
-        if (!modal) return;
-
-        modal.classList.remove('active');
-        document.body.style.overflow = 'auto';
-        
-        setTimeout(() => {
-            if (!modal.classList.contains('active')) modal.style.display = 'none';
-        }, 400);
-
-        if (unsubscribeComentarios) unsubscribeComentarios();
-        idComentariosAtivo = null;
+    // PONTE PARA O MODAL DE COMENTÁRIOS (Sem quebrar o carregamento)
+    toggleComentarios: (abrir, id = null) => {
+        if (window.secaoComentarios) {
+            if (abrir) window.secaoComentarios.abrir(id);
+            else window.secaoComentarios.fechar();
+        } else {
+            console.warn("Módulo de comentários ainda não disponível.");
+        }
     },
-
+    trocarVideo: (iframeId, videoId) => {
+        const iframe = document.getElementById(iframeId);
+        if (iframe) {
+            iframe.src = `https://www.youtube.com/embed/${videoId}`;
+            window.logVisual("Vídeo trocado.");
+        }
+    },
+    compartilharNoticia: (titulo, url) => {
+        if (navigator.share) {
+            navigator.share({ title: titulo, url: url });
+        } else {
+            navigator.clipboard.writeText(url);
+            const toast = document.getElementById('toast-copiado');
+            if (toast) {
+                toast.classList.add('mostrar');
+                setTimeout(() => toast.classList.remove('mostrar'), 2000);
+            }
+        }
+    },
     carregarMaisNovo: () => {
-        noticiasExibidasCount += 5;
-        atualizarInterface();
+        const totalNoBanco = todasAsAnalisesLocais.length;
+        if (noticiasExibidasCount >= totalNoBanco) {
+            window.logVisual(`Fim da lista!`);
+        } else {
+            noticiasExibidasCount += 5;
+            window.logVisual(`Expandindo limite para ${noticiasExibidasCount}...`);
+            atualizarInterface();
+        }
     }
 };
 
-// --- OUVINTE GLOBAL DE EVENTOS ---
 document.addEventListener('click', (e) => {
-    // 1. Fechar Modal
-    if (e.target.closest('#btn-fechar-comentarios') || e.target.classList.contains('modal-comentarios-overlay')) {
-        window.analises.fecharComentarios();
-    }
-    // 2. Enviar Comentário
-    if (e.target.closest('#btn-enviar-comentario')) {
-        enviarMensagemFirebase();
-    }
-    // 3. Botão Carregar Mais
-    if (e.target.closest('#btn-carregar-mais')) {
+    const target = e.target.closest('#btn-carregar-mais');
+    if (target) {
+        e.preventDefault();
         window.analises.carregarMaisNovo();
     }
 });
 
-// Enviar com Enter
-document.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter' && e.target.id === 'input-novo-comentario') {
-        enviarMensagemFirebase();
+async function carregarBlocoEditorial() {
+    window.logVisual("Buscando dados editoriais...");
+    const blocoRef = doc(db, "sobre_nos", "analises_bloco_1");
+    try {
+        const snap = await getDoc(blocoRef);
+        if (snap.exists()) {
+            const data = snap.data();
+            const tituloEl = document.getElementById('capa-titulo');
+            const descEl = document.getElementById('capa-descricao');
+            if (tituloEl) tituloEl.textContent = data.titulo || "Análises";
+            if (descEl) descEl.textContent = data.descricao || "";
+            window.logVisual("Editorial carregado.");
+        }
+    } catch (error) { 
+        window.logVisual("Erro no Firebase Editorial."); 
     }
-});
+}
 
-// --- SINCRONIZAÇÃO DE NOTÍCIAS ---
+function forcarBotao(tentativas = 0) {
+    const btnContainer = document.getElementById('novo-pagination-modulo');
+    if (btnContainer) {
+        Interface.renderizarBotaoPaginacao();
+    } else if (tentativas < 10) {
+        setTimeout(() => forcarBotao(tentativas + 1), 1000);
+    }
+}
+
 function atualizarInterface() {
+    window.logVisual(`Renderizando até ${noticiasExibidasCount} itens...`);
     Interface.renderizarNoticias(todasAsAnalisesLocais, noticiasExibidasCount);
-    Interface.renderizarBotaoPaginacao();
+    forcarBotao();
 }
 
 function iniciarSyncNoticias() {
     window.logVisual("Sincronizando banco...");
     onSnapshot(collection(db, "analises"), (snapshot) => {
-        todasAsAnalisesLocais = snapshot.docs.map(doc => ({ 
-            id: doc.id, 
-            ...doc.data(),
-            videoPrincipal: doc.data().videoPrincipal?.replace("watch?v=", "embed/") || ""
-        })).sort((a, b) => (b.lastUpdate || 0) - (a.lastUpdate || 0));
+        window.logVisual(`${snapshot.size} itens no Firebase.`);
+        todasAsAnalisesLocais = snapshot.docs
+            .map(doc => ({ 
+                id: doc.id, 
+                origem: 'analises', 
+                ...doc.data(),
+                videoPrincipal: doc.data().videoPrincipal?.replace("watch?v=", "embed/") || ""
+            }))
+            .sort((a, b) => {
+                const dataA = a.lastUpdate ? new Date(a.lastUpdate).getTime() : 0;
+                const dataB = b.lastUpdate ? new Date(b.lastUpdate).getTime() : 0;
+                return dataB - dataA;
+            });
+        
         atualizarInterface();
     });
 }
 
 // Inicialização
 criarPainelLogs();
+window.logVisual("Sistema Iniciado.");
+carregarBlocoEditorial();
 iniciarSyncNoticias();
