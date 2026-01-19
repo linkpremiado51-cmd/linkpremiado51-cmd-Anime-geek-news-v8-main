@@ -1,6 +1,6 @@
 /**
  * ARQUIVO: modulos/modulos_analises/analises_interface.js
- * Interface Modularizada - Versão com Botão Persistente e Logs Visuais
+ * Interface Modularizada - Versão Limpa (Sem Comentários)
  */
 
 import { limparEspacos } from './analises_funcoes.js';
@@ -43,7 +43,6 @@ function criarRelacionadosHtml(newsId, relacionados) {
 
 /**
  * Injeta o HTML do botão no placeholder fixo de forma FORÇADA.
- * Agora ele ignora contagens e aparece sempre.
  */
 export function renderizarBotaoPaginacao() {
     const paginationWrapper = document.getElementById('novo-pagination-modulo');
@@ -53,7 +52,6 @@ export function renderizarBotaoPaginacao() {
         return;
     }
 
-    // Injeta sempre. Se já houver, ele apenas reforça o HTML.
     paginationWrapper.innerHTML = `
         <div style="text-align: center; padding: 20px 0 60px 0; width: 100%;">
             <button class="btn-paginacao-geek" id="btn-carregar-mais">
@@ -85,7 +83,6 @@ export function renderizarNoticias(noticias, limite) {
         return;
     }
 
-    // Renderiza os artigos
     container.innerHTML = listaParaExibir.map(news => {
         const shareUrl = `${baseUrl}?id=${encodeURIComponent(news.id)}`;
         const viewCount = news.views || Math.floor(Math.random() * 900) + 100 + "K";
@@ -144,16 +141,6 @@ export function renderizarNoticias(noticias, limite) {
                 <div class="temas-container">
                     ${criarRelacionadosHtml(news.id, news.relacionados)}
                 </div>
-            </div>
-          </div>
-
-          <div class="comments-trigger-bar" onclick="window.analises.toggleComentarios(true, '${news.id}')">
-            <div class="trigger-left">
-              <i class="fa-solid fa-circle-nodes"></i>
-              <span>Ver discussão da comunidade...</span>
-            </div>
-            <div class="trigger-right">
-                <i class="fa-solid fa-comments"></i>
             </div>
           </div>
         </article>
