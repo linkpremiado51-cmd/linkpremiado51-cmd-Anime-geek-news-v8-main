@@ -1,7 +1,6 @@
 <div class="destaque-wrapper">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <link rel="stylesheet" href="./modulos/modulos_analises/analises_estilo.css">
-  <link rel="stylesheet" href="./comentarios_de_secao/comentarios_estilo.css">
 
   <div id="capa-editorial" class="capa-editorial-block">
     <div class="capa-content-inner">
@@ -19,10 +18,27 @@
   
   <div id="toast-copiado">Link copiado!</div>
 
-  <script type="module">
-    // Importa o módulo de comentários global para injetar a estrutura e lógica
-    import './comentarios_de_secao/comentarios_principal.js';
+  <div id="modal-comentarios-geek" class="modal-geek-overlay">
+    <div class="modal-geek-content">
+      <div class="modal-geek-header">
+        <div class="header-main-title">
+          <i class="fa-solid fa-comments"></i>
+          <span>Comunidade <small>Discussão Ativa</small></span>
+        </div>
+        <button onclick="window.analises.toggleComentarios(false)" class="btn-geek-close">×</button>
+      </div>
+      <div class="modal-geek-body" id="flow-comentarios"></div>
+      <div class="modal-geek-footer">
+        <div class="input-wrapper-geek">
+          <div class="mini-my-avatar" style="background: #333;">Eu</div>
+          <input type="text" placeholder="Adicione um comentário..." id="input-comentario-real">
+          <button class="btn-send-geek"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
 
+  <script>
     (function() {
       console.log("Injetor: Forçando carregamento do módulo de análises...");
       const scriptId = 'script-analises-loader';
@@ -63,6 +79,7 @@
     
     .subcat-tag { background: var(--bg); color: var(--text-main); padding: 6px 15px; border-radius: 50px; font-size: 0.85rem; font-weight: 700; display: inline-block; margin: 5px; border: 1px solid var(--border); }
     
+    /* Botão forçado com cor roxa para teste visual no mobile */
     .btn-paginacao-geek { 
       background: #8A2BE2 !important; 
       color: #fff !important; 
