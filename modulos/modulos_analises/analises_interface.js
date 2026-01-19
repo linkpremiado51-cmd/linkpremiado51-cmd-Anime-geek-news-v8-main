@@ -1,11 +1,10 @@
 /**
  * ARQUIVO: modulos/modulos_analises/analises_interface.js
- * Interface Modularizada - Versão Integrada com Comentários Globais
+ * Interface Modularizada - Versão Unificada (Notícias + Comentários)
  */
 
 import { limparEspacos } from './analises_funcoes.js';
 
-// Função auxiliar para conversar com o painel de debug do principal.js
 function logInterface(msg) {
     if (typeof window.logVisual === 'function') {
         window.logVisual(msg);
@@ -13,7 +12,41 @@ function logInterface(msg) {
 }
 
 /**
- * Cria o HTML da ficha técnica (grid de informações)
+ * RENDERIZAÇÃO DE COMENTÁRIOS (Unificado)
+ */
+export function renderizarListaComentarios(comentarios) {
+    const listaCorpo = document.getElementById('lista-comentarios-global');
+    if (!listaCorpo) return;
+
+    if (comentarios.length === 0) {
+        listaCorpo.innerHTML = `
+            <div style="text-align:center; padding:40px; opacity:0.5;">
+                <i class="fas fa-comment-slash" style="font-size:2rem; margin-bottom:10px;"></i>
+                <p>Nenhum comentário ainda. Seja o primeiro!</p>
+            </div>`;
+        return;
+    }
+
+    listaCorpo.innerHTML = comentarios.map(c => {
+        // Gera uma cor ou avatar baseado no nome (Simples)
+        const inicial = c.autor ? c.autor.charAt(0).toUpperCase() : "G";
+        
+        return `
+            <div class="comentario-item">
+                <div class="comentario-autor">${c.autor || 'Anônimo'}</div>
+                <div class="comentario-texto-wrapper">
+                    <div class="comentario-texto">${c.texto}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Scroll automático para o último comentário
+    listaCorpo.scrollTop = listaCorpo.scrollHeight;
+}
+
+/**
+ * Cria o HTML da ficha técnica
  */
 export function criarFichaHtml(ficha) {
     if (!ficha || !Array.isArray(ficha)) return "";
@@ -26,7 +59,7 @@ export function criarFichaHtml(ficha) {
 }
 
 /**
- * Gera o HTML dos vídeos relacionados (carrossel)
+ * Gera o HTML dos vídeos relacionados
  */
 function criarRelacionadosHtml(newsId, relacionados) {
     if (!relacionados || !Array.isArray(relacionados)) return "";
@@ -42,15 +75,11 @@ function criarRelacionadosHtml(newsId, relacionados) {
 }
 
 /**
- * Injeta o HTML do botão no placeholder fixo de forma FORÇADA.
+ * Injeta o botão de paginação
  */
 export function renderizarBotaoPaginacao() {
     const paginationWrapper = document.getElementById('novo-pagination-modulo');
-    
-    if (!paginationWrapper) {
-        logInterface("ERRO: Placeholder do botão não achado na interface.");
-        return;
-    }
+    if (!paginationWrapper) return;
 
     paginationWrapper.innerHTML = `
         <div style="text-align: center; padding: 20px 0 60px 0; width: 100%;">
@@ -60,12 +89,10 @@ export function renderizarBotaoPaginacao() {
             </button>
         </div>
     `;
-    
-    logInterface("Botão Injetado.");
 }
 
 /**
- * Renderiza a lista de notícias no container principal
+ * Renderiza a lista de notícias
  */
 export function renderizarNoticias(noticias, limite) {
     const container = document.getElementById('container-principal');
@@ -75,85 +102,51 @@ export function renderizarNoticias(noticias, limite) {
     const listaParaExibir = noticias.slice(0, limite);
 
     if (listaParaExibir.length === 0) {
-        container.innerHTML = `
-            <div style="text-align:center; padding:80px 20px; opacity:0.6;">
-                <i class="fa-solid fa-layer-group" style="font-size:3rem; margin-bottom:20px; display:block;"></i>
-                <p>Nenhuma análise encontrada nesta categoria.</p>
-            </div>`;
+        container.innerHTML = `<div style="text-align:center; padding:80px; opacity:0.6;"><p>Nenhuma análise encontrada.</p></div>`;
         return;
     }
 
     container.innerHTML = listaParaExibir.map(news => {
         const shareUrl = `${baseUrl}?id=${encodeURIComponent(news.id)}`;
-        const viewCount = news.views || Math.floor(Math.random() * 900) + 100 + "K";
+        const viewCount = news.views || "100K";
 
         return `
         <article class="destaque-secao" id="artigo-${news.id}" style="--tema-cor: ${news.cor || '#8A2BE2'}">
           <div class="destaque-padding">
             <div class="destaque-top-meta">
-                <div class="destaque-categoria" onclick="window.analises.abrirNoModalGlobal('${news.id}')">
-                    <i class="fa-solid fa-hashtag"></i> ${news.categoria || 'ANÁLISE'}
-                </div>
-                <div class="destaque-data-badge">
-                    <i class="fa-regular fa-clock"></i> ${news.tempoLeitura || '5 min'}
-                </div>
+                <div class="destaque-categoria"><i class="fa-solid fa-hashtag"></i> ${news.categoria || 'ANÁLISE'}</div>
+                <div class="destaque-data-badge"><i class="fa-regular fa-clock"></i> ${news.tempoLeitura || '5 min'}</div>
             </div>
-            
-            <div class="destaque-header">
-              <h2 class="destaque-titulo" onclick="window.analises.abrirNoModalGlobal('${news.id}')">
-                ${news.titulo}
-              </h2>
-            </div>
-
+            <h2 class="destaque-titulo">${news.titulo}</h2>
             <p class="destaque-resumo">${news.resumo || ''}</p>
-            
-            <div class="destaque-info-grid">
-              ${criarFichaHtml(news.ficha)}
-            </div>
+            <div class="destaque-info-grid">${criarFichaHtml(news.ficha)}</div>
           </div>
 
           <div class="destaque-media">
-            <iframe 
-                id="player-${news.id}" 
-                src="${limparEspacos(news.videoPrincipal)}" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                allowfullscreen>
-            </iframe>
+            <iframe id="player-${news.id}" src="${limparEspacos(news.videoPrincipal)}" allowfullscreen></iframe>
           </div>
 
           <div class="premium-actions-bar">
             <button class="btn-premium-icon" onclick="window.analises.compartilharNoticia('${news.titulo.replace(/'/g, "\\'")}', '${shareUrl}')">
-              <i class="fa-solid fa-share-nodes"></i> 
-              <span>Compartilhar</span>
+              <i class="fa-solid fa-share-nodes"></i> <span>Compartilhar</span>
             </button>
             <div class="stats-group">
-                <i class="fa-solid fa-chart-line"></i>
-                <span class="stats-num">${viewCount} visualizações</span>
+                <i class="fa-solid fa-chart-line"></i> <span class="stats-num">${viewCount} visualizações</span>
             </div>
           </div>
 
           <div class="carrossel-temas">
-            <div class="carrossel-header">
-                <i class="fa-solid fa-film"></i>
-                <span class="temas-label">Vídeos Relacionados</span>
-            </div>
+            <div class="carrossel-header"><i class="fa-solid fa-film"></i> <span>Vídeos Relacionados</span></div>
             <div class="temas-scroll-wrapper">
-                <div class="temas-container">
-                    ${criarRelacionadosHtml(news.id, news.relacionados)}
-                </div>
+                <div class="temas-container">${criarRelacionadosHtml(news.id, news.relacionados)}</div>
             </div>
           </div>
 
-          <div class="comments-trigger-bar" 
-               onclick="if(window.secaoComentarios) { window.secaoComentarios.abrir('${news.id}') } else { console.log('Aguardando módulo...') }" 
-               style="cursor:pointer; padding: 15px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: rgba(138, 43, 226, 0.05);">
-            <div class="trigger-left" style="display: flex; align-items: center; gap: 10px; color: #8A2BE2; font-weight: 700; font-size: 0.85rem;">
-              <i class="fa-solid fa-circle-nodes"></i>
-              <span>Ver discussão da comunidade...</span>
+          <div class="comments-trigger-bar" onclick="window.analises.abrirComentarios('${news.id}')">
+            <div class="trigger-left" style="color: #8A2BE2; font-weight: 700; font-size: 0.85rem;">
+              <i class="fa-solid fa-circle-nodes"></i> <span>Ver discussão da comunidade...</span>
             </div>
-            <div class="trigger-right" style="color: var(--text-muted); font-size: 1.1rem;">
-                <i class="fa-solid fa-comments"></i>
-            </div>
+            <i class="fa-solid fa-comments"></i>
           </div>
         </article>
       `;
