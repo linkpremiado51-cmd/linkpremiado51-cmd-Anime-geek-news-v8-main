@@ -1,7 +1,7 @@
 /**
  * ARQUIVO: modulos/modulos_analises/analises_principal.js
- * Sistema com Logs Visuais e Botão de Paginação Forçado
- * Versão Restaurada - Estável
+ * Sistema com Logs Visuais e Event Delegation para Comentários
+ * Versão Estável - Integrada
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -51,20 +51,21 @@ window.analises = {
         const noticia = todasAsAnalisesLocais.find(n => n.id === id);
         if (noticia && window.abrirModalNoticia) window.abrirModalNoticia(noticia);
     },
-    // PONTE PARA O MODAL DE COMENTÁRIOS (Sem quebrar o carregamento)
+    // PONTE PARA O MODAL DE COMENTÁRIOS (Corrigido para evitar quebras)
     toggleComentarios: (abrir, id = null) => {
-        if (window.secaoComentarios) {
+        if (window.secaoComentarios && typeof window.secaoComentarios.abrir === 'function') {
             if (abrir) window.secaoComentarios.abrir(id);
             else window.secaoComentarios.fechar();
         } else {
-            console.warn("Módulo de comentários ainda não disponível.");
+            window.logVisual("Aguardando carregamento do módulo de comentários...");
         }
     },
     trocarVideo: (iframeId, videoId) => {
         const iframe = document.getElementById(iframeId);
         if (iframe) {
+            // Correção na interpolação da string do YouTube
             iframe.src = `https://www.youtube.com/embed/${videoId}`;
-            window.logVisual("Vídeo trocado.");
+            window.logVisual("Vídeo trocado com sucesso.");
         }
     },
     compartilharNoticia: (titulo, url) => {
@@ -91,11 +92,27 @@ window.analises = {
     }
 };
 
+// --- OUVINTE DE EVENTOS GLOBAL (Resolve o problema do clique no módulo) ---
 document.addEventListener('click', (e) => {
-    const target = e.target.closest('#btn-carregar-mais');
-    if (target) {
+    // 1. Botão Carregar Mais
+    const btnMais = e.target.closest('#btn-carregar-mais');
+    if (btnMais) {
         e.preventDefault();
         window.analises.carregarMaisNovo();
+        return;
+    }
+
+    // 2. Barra de Gatilho dos Comentários
+    const triggerComentarios = e.target.closest('.comments-trigger-bar');
+    if (triggerComentarios) {
+        e.preventDefault();
+        const artigo = triggerComentarios.closest('article');
+        const idNoticia = artigo ? artigo.id.replace('artigo-', '') : null;
+        
+        if (idNoticia) {
+            window.logVisual("Abrindo discussão da análise...");
+            window.analises.toggleComentarios(true, idNoticia);
+        }
     }
 });
 
@@ -150,6 +167,8 @@ function iniciarSyncNoticias() {
             });
         
         atualizarInterface();
+    }, (error) => {
+        window.logVisual("Erro na sincronização: " + error.message);
     });
 }
 
