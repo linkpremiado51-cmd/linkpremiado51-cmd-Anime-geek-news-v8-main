@@ -1,13 +1,16 @@
 /**
  * ARQUIVO: modulos/modulos_analises/analises_principal.js
- * Sistema com Logs Visuais e Botão de Paginação Forçado
- * Versão Integrada - Corrigindo funções de interface ausentes para evitar travamentos
+ * Sistema com Logs Visuais e Integração de Comentários
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import * as Funcoes from './analises_funcoes.js';
 import * as Interface from './analises_interface.js';
+
+// --- IMPORTAÇÃO DO MÓDULO DE COMENTÁRIOS ---
+// Movido para cá para garantir que o carregamento seja feito via type="module" corretamente
+import '../../comentarios_de_secao/comentarios_principal.js';
 
 // --- SISTEMA DE LOGS VISUAIS PARA CELULAR ---
 function criarPainelLogs() {
@@ -52,16 +55,14 @@ window.analises = {
         if (noticia && window.abrirModalNoticia) window.abrirModalNoticia(noticia);
     },
     // PONTE PARA O MODAL DE COMENTÁRIOS
-    // Isso evita o erro "toggleComentarios is not a function" quando você clica em fechar no HTML
     toggleComentarios: (abrir, id = null) => {
         if (window.secaoComentarios) {
             if (abrir) window.secaoComentarios.abrir(id);
             else window.secaoComentarios.fechar();
         } else {
-            console.error("Módulo de comentários não carregado.");
+            window.logVisual("ERRO: Módulo de comentários não carregado.");
         }
     },
-    // Adicionado para suportar o carrossel de vídeos na interface
     trocarVideo: (iframeId, videoId) => {
         const iframe = document.getElementById(iframeId);
         if (iframe) {
@@ -69,7 +70,6 @@ window.analises = {
             window.logVisual("Vídeo trocado.");
         }
     },
-    // Adicionado para suportar o botão de compartilhamento na interface
     compartilharNoticia: (titulo, url) => {
         if (navigator.share) {
             navigator.share({ title: titulo, url: url });
@@ -84,9 +84,8 @@ window.analises = {
     },
     carregarMaisNovo: () => {
         const totalNoBanco = todasAsAnalisesLocais.length;
-        
         if (noticiasExibidasCount >= totalNoBanco) {
-            window.logVisual(`Fim da lista! (Mostrando ${totalNoBanco} de ${totalNoBanco})`);
+            window.logVisual(`Fim da lista!`);
         } else {
             noticiasExibidasCount += 5;
             window.logVisual(`Expandindo limite para ${noticiasExibidasCount}...`);
@@ -95,7 +94,6 @@ window.analises = {
     }
 };
 
-// Delegamento de Eventos (Blindagem)
 document.addEventListener('click', (e) => {
     const target = e.target.closest('#btn-carregar-mais');
     if (target) {
@@ -120,25 +118,17 @@ async function carregarBlocoEditorial() {
     }
 }
 
-/**
- * Tenta encontrar o container e força a injeção do botão
- */
 function forcarBotao(tentativas = 0) {
     const btnContainer = document.getElementById('novo-pagination-modulo');
-
     if (btnContainer) {
-        window.logVisual("Container achado. Injetando botão...");
         Interface.renderizarBotaoPaginacao();
     } else if (tentativas < 10) {
-        window.logVisual(`Aguardando container... (${tentativas + 1}/10)`);
         setTimeout(() => forcarBotao(tentativas + 1), 1000);
-    } else {
-        window.logVisual("ERRO: Container não apareceu.");
     }
 }
 
 function atualizarInterface() {
-    window.logVisual(`Renderizando até ${noticiasExibidasCount} itens...`);
+    window.logVisual(`Renderizando ${noticiasExibidasCount} itens...`);
     Interface.renderizarNoticias(todasAsAnalisesLocais, noticiasExibidasCount);
     forcarBotao();
 }
@@ -166,6 +156,6 @@ function iniciarSyncNoticias() {
 
 // Inicialização
 criarPainelLogs();
-window.logVisual("Sistema Iniciado.");
+window.logVisual("Sistema Principal Iniciado.");
 carregarBlocoEditorial();
 iniciarSyncNoticias();
