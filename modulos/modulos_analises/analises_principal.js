@@ -1,7 +1,6 @@
 /**
  * ARQUIVO: modulos/modulos_analises/analises_principal.js
- * Sistema com Logs Visuais e Botão de Paginação Forçado
- * Versão Integrada - Corrigindo funções de interface ausentes para evitar travamentos
+ * Sistema com Logs Visuais Globais e Integração de Comentários
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -9,7 +8,8 @@ import { getFirestore, collection, onSnapshot, doc, getDoc } from "https://www.g
 import * as Funcoes from './analises_funcoes.js';
 import * as Interface from './analises_interface.js';
 
-// --- SISTEMA DE LOGS VISUAIS PARA CELULAR ---
+// --- SISTEMA DE LOGS VISUAIS GLOBAIS ---
+// Movido para o topo para que outros módulos possam usar
 function criarPainelLogs() {
     if (document.getElementById('debug-mobile')) return;
     const panel = document.createElement('div');
@@ -20,14 +20,25 @@ function criarPainelLogs() {
 
 window.logVisual = function(msg) {
     const panel = document.getElementById('debug-mobile');
-    if (panel) {
+    if (!panel) {
+        criarPainelLogs(); // Garante que o painel exista antes de logar
+    }
+    const atualPanel = document.getElementById('debug-mobile');
+    if (atualPanel) {
         const line = document.createElement('div');
         line.textContent = `> ${new Date().toLocaleTimeString()}: ${msg}`;
-        panel.prepend(line);
+        atualPanel.prepend(line);
     }
     console.log(msg);
 };
+
+// Inicia o painel imediatamente
+criarPainelLogs();
 // --------------------------------------------
+
+// AGORA SIM: Importa o sistema de comentários global
+// Ele agora poderá usar o window.logVisual() lá de dentro!
+import '../../comentarios_de_secao/comentarios_principal.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyBC_ad4X9OwCHKvcG_pNQkKEl76Zw2tu6o",
@@ -51,7 +62,6 @@ window.analises = {
         const noticia = todasAsAnalisesLocais.find(n => n.id === id);
         if (noticia && window.abrirModalNoticia) window.abrirModalNoticia(noticia);
     },
-    // Adicionado para suportar o carrossel de vídeos na interface
     trocarVideo: (iframeId, videoId) => {
         const iframe = document.getElementById(iframeId);
         if (iframe) {
@@ -59,7 +69,6 @@ window.analises = {
             window.logVisual("Vídeo trocado.");
         }
     },
-    // Adicionado para suportar o botão de compartilhamento na interface
     compartilharNoticia: (titulo, url) => {
         if (navigator.share) {
             navigator.share({ title: titulo, url: url });
@@ -74,18 +83,16 @@ window.analises = {
     },
     carregarMaisNovo: () => {
         const totalNoBanco = todasAsAnalisesLocais.length;
-        
         if (noticiasExibidasCount >= totalNoBanco) {
-            window.logVisual(`Fim da lista! (Mostrando ${totalNoBanco} de ${totalNoBanco})`);
+            window.logVisual(`Fim da lista.`);
         } else {
             noticiasExibidasCount += 5;
-            window.logVisual(`Expandindo limite para ${noticiasExibidasCount}...`);
+            window.logVisual(`Expandindo para ${noticiasExibidasCount}...`);
             atualizarInterface();
         }
     }
 };
 
-// Delegamento de Eventos (Blindagem)
 document.addEventListener('click', (e) => {
     const target = e.target.closest('#btn-carregar-mais');
     if (target) {
@@ -95,7 +102,7 @@ document.addEventListener('click', (e) => {
 });
 
 async function carregarBlocoEditorial() {
-    window.logVisual("Buscando dados editoriais...");
+    window.logVisual("Buscando editorial...");
     const blocoRef = doc(db, "sobre_nos", "analises_bloco_1");
     try {
         const snap = await getDoc(blocoRef);
@@ -103,40 +110,31 @@ async function carregarBlocoEditorial() {
             const data = snap.data();
             const tituloEl = document.getElementById('capa-titulo');
             if (tituloEl) tituloEl.textContent = data.titulo || "Análises";
-            window.logVisual("Editorial carregado.");
+            window.logVisual("Editorial OK.");
         }
     } catch (error) { 
-        window.logVisual("Erro no Firebase Editorial."); 
+        window.logVisual("Erro Editorial."); 
     }
 }
 
-/**
- * Tenta encontrar o container e força a injeção do botão
- */
 function forcarBotao(tentativas = 0) {
     const btnContainer = document.getElementById('novo-pagination-modulo');
-
     if (btnContainer) {
-        window.logVisual("Container achado. Injetando botão...");
         Interface.renderizarBotaoPaginacao();
     } else if (tentativas < 10) {
-        window.logVisual(`Aguardando container... (${tentativas + 1}/10)`);
         setTimeout(() => forcarBotao(tentativas + 1), 1000);
-    } else {
-        window.logVisual("ERRO: Container não apareceu.");
     }
 }
 
 function atualizarInterface() {
-    window.logVisual(`Renderizando até ${noticiasExibidasCount} itens...`);
     Interface.renderizarNoticias(todasAsAnalisesLocais, noticiasExibidasCount);
     forcarBotao();
 }
 
 function iniciarSyncNoticias() {
-    window.logVisual("Sincronizando banco...");
+    window.logVisual("Sincronizando Firebase...");
     onSnapshot(collection(db, "analises"), (snapshot) => {
-        window.logVisual(`${snapshot.size} itens no Firebase.`);
+        window.logVisual(`${snapshot.size} notícias lidas.`);
         todasAsAnalisesLocais = snapshot.docs
             .map(doc => ({ 
                 id: doc.id, 
@@ -155,7 +153,6 @@ function iniciarSyncNoticias() {
 }
 
 // Inicialização
-criarPainelLogs();
-window.logVisual("Sistema Iniciado.");
+window.logVisual("Iniciando Sistema Principal...");
 carregarBlocoEditorial();
 iniciarSyncNoticias();
