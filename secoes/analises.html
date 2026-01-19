@@ -21,67 +21,51 @@
 
   <script>
     (function() {
-      console.log("Injetor: Iniciando carregamento do sistema de análises...");
-      
+      console.log("Injetor: Iniciando carregamento dos módulos...");
+      const timestamp = Date.now();
+
+      // 1. Carrega o Módulo de Comentários primeiro (de forma independente)
+      const scriptComentarios = document.createElement('script');
+      scriptComentarios.type = 'module';
+      scriptComentarios.src = './comentarios_de_secao/comentarios_principal.js?v=' + timestamp;
+      document.body.appendChild(scriptComentarios);
+
+      // 2. Reinicia e carrega o Módulo de Análises
       const scriptId = 'script-analises-loader';
       const oldScript = document.getElementById(scriptId);
       if (oldScript) oldScript.remove();
 
-      const script = document.createElement('script');
-      script.id = scriptId;
-      script.type = 'module';
-      // Este arquivo agora será o responsável por importar os comentários
-      script.src = './modulos/modulos_analises/analises_principal.js?v=' + Date.now();
-      document.body.appendChild(script);
+      const scriptAnalises = document.createElement('script');
+      scriptAnalises.id = scriptId;
+      scriptAnalises.type = 'module';
+      scriptAnalises.src = './modulos/modulos_analises/analises_principal.js?v=' + timestamp;
+      document.body.appendChild(scriptAnalises);
     })();
   </script>
 
   <style>
     :root {
-      --card-bg: #ffffff;
-      --border: #e0e0e0;
-      --bg: #f8f9fa;
-      --text-main: #121212;
-      --text-muted: #555;
-      --container-w: 1200px;
-      --radius: 12px;
+      --card-bg: #ffffff; --border: #e0e0e0; --bg: #f8f9fa;
+      --text-main: #121212; --text-muted: #555;
+      --container-w: 1200px; --radius: 12px;
     }
-
     body.dark-mode {
-      --card-bg: #1a1a1a;
-      --border: #333;
-      --bg: #252525;
-      --text-main: #fff;
-      --text-muted: #bbb;
+      --card-bg: #1a1a1a; --border: #333; --bg: #252525;
+      --text-main: #fff; --text-muted: #bbb;
     }
-
     .capa-editorial-block { width: 100%; padding: 0 16px; margin: 0 auto 32px auto; max-width: var(--container-w); }
     .capa-content-inner { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 30px; text-align: center; }
     .capa-title { font-size: clamp(1.8rem, 5vw, 2.5rem); font-weight: 900; color: var(--text-main); margin-bottom: 15px; }
     .capa-desc { max-width: 700px; margin: 0 auto 20px auto; color: var(--text-muted); line-height: 1.6; }
-    
     .subcat-tag { background: var(--bg); color: var(--text-main); padding: 6px 15px; border-radius: 50px; font-size: 0.85rem; font-weight: 700; display: inline-block; margin: 5px; border: 1px solid var(--border); }
-    
     .btn-paginacao-geek { 
-      background: #8A2BE2 !important; 
-      color: #fff !important; 
-      border: none; 
-      padding: 15px 35px; 
-      border-radius: 50px; 
-      cursor: pointer; 
-      font-weight: 800; 
-      transition: 0.3s; 
-      margin: 30px auto; 
-      display: flex; 
-      align-items: center;
-      gap: 10px;
-      box-shadow: 0 5px 15px rgba(138, 43, 226, 0.4);
+      background: #8A2BE2 !important; color: #fff !important; border: none; padding: 15px 35px; 
+      border-radius: 50px; cursor: pointer; font-weight: 800; transition: 0.3s; margin: 30px auto; 
+      display: flex; align-items: center; gap: 10px; box-shadow: 0 5px 15px rgba(138, 43, 226, 0.4);
     }
     .btn-paginacao-geek:hover { transform: scale(1.05); background: #9D4EDD !important; }
-
     #toast-copiado { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 30px; opacity: 0; transition: 0.3s; z-index: 10000; pointer-events: none; }
     #toast-copiado.mostrar { opacity: 1; }
-
     .destaque-secao { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 40px; overflow: hidden; max-width: var(--container-w); margin-left: auto; margin-right: auto; }
     .destaque-padding { padding: 25px; }
     .destaque-titulo { font-size: 1.8rem; font-weight: 800; margin: 10px 0; color: var(--text-main); line-height: 1.2; }
