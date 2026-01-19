@@ -17,6 +17,21 @@
 
   <div id="novo-pagination-modulo" style="min-height: 150px; width: 100%; clear: both; display: block;"></div>
   
+  <div id="modal-comentarios-global" class="modal-comentarios-overlay" style="display: none;">
+    <div class="modal-comentarios-container">
+      <div class="modal-comentarios-header">
+        <h3><i class="fas fa-comments"></i> Discussão</h3>
+        <button id="btn-fechar-comentarios" class="btn-close-comentarios">&times;</button>
+      </div>
+      <div id="lista-comentarios-global" class="modal-comentarios-body">
+        </div>
+      <div class="modal-comentarios-footer">
+        <input type="text" id="input-novo-comentario" placeholder="Escreva sua opinião...">
+        <button id="btn-enviar-comentario"><i class="fas fa-paper-plane"></i></button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-copiado">Link copiado!</div>
 
   <script>
@@ -24,13 +39,13 @@
       console.log("Injetor: Iniciando carregamento dos módulos...");
       const timestamp = Date.now();
 
-      // 1. Carrega o Módulo de Comentários primeiro (de forma independente)
+      // 1. Carrega o Módulo de Comentários
       const scriptComentarios = document.createElement('script');
       scriptComentarios.type = 'module';
       scriptComentarios.src = './comentarios_de_secao/comentarios_principal.js?v=' + timestamp;
       document.body.appendChild(scriptComentarios);
 
-      // 2. Reinicia e carrega o Módulo de Análises
+      // 2. Carrega o Módulo de Análises
       const scriptId = 'script-analises-loader';
       const oldScript = document.getElementById(scriptId);
       if (oldScript) oldScript.remove();
