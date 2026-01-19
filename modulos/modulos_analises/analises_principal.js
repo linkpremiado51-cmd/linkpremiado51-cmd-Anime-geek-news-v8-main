@@ -51,6 +51,16 @@ window.analises = {
         const noticia = todasAsAnalisesLocais.find(n => n.id === id);
         if (noticia && window.abrirModalNoticia) window.abrirModalNoticia(noticia);
     },
+    // PONTE PARA O MODAL DE COMENTÁRIOS
+    // Isso evita o erro "toggleComentarios is not a function" quando você clica em fechar no HTML
+    toggleComentarios: (abrir, id = null) => {
+        if (window.secaoComentarios) {
+            if (abrir) window.secaoComentarios.abrir(id);
+            else window.secaoComentarios.fechar();
+        } else {
+            console.error("Módulo de comentários não carregado.");
+        }
+    },
     // Adicionado para suportar o carrossel de vídeos na interface
     trocarVideo: (iframeId, videoId) => {
         const iframe = document.getElementById(iframeId);
