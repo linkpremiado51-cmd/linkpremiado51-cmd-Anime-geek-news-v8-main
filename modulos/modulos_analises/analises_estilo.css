@@ -162,7 +162,7 @@ body.dark-mode {
 .tema-titulo { font-size: 11px; font-weight: 700; color: var(--text-main); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* ======================================================
-   AÇÕES E COMENTÁRIOS
+   AÇÕES PREMIUM
 ====================================================== */
 .premium-actions-bar {
   display: flex;
@@ -175,21 +175,6 @@ body.dark-mode {
 
 .stats-group { font-size: 12px; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
 
-.comments-trigger-bar {
-  margin: 0 25px 25px 25px;
-  background: var(--bg);
-  border-radius: 12px;
-  padding: 12px 18px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  cursor: pointer;
-  border: 1px solid var(--border);
-  transition: 0.2s;
-}
-
-.comments-trigger-bar:hover { background: var(--border); }
-
 /* ======================================================
    BLOCO EDITORIAL (CAPA)
 ====================================================== */
@@ -200,16 +185,10 @@ body.dark-mode {
 .subcat-tag { background: var(--bg); color: var(--text-main); padding: 6px 15px; border-radius: 50px; font-size: 0.85rem; font-weight: 700; display: inline-block; margin: 5px; border: 1px solid var(--border); }
 
 /* ======================================================
-   MODAL GEEK & TOAST (Otimizados)
+   FEEDBACK VISUAL (TOAST)
 ====================================================== */
-.modal-geek-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 9999; display: none; justify-content: center; align-items: flex-end; }
-.modal-geek-overlay.active { display: flex; }
-.modal-geek-content { background: var(--card-bg); width: 100%; max-width: 600px; max-height: 85vh; border-radius: 20px 20px 0 0; display: flex; flex-direction: column; animation: slideUp 0.3s ease-out; }
-
 #toast-copiado { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 12px 25px; border-radius: 50px; font-weight: 700; font-size: 13px; opacity: 0; transition: 0.3s; z-index: 10000; pointer-events: none; }
 #toast-copiado.mostrar { opacity: 1; transform: translateX(-50%) translateY(-10px); }
-
-@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
 /* ======================================================
    RESPONSIVIDADE
