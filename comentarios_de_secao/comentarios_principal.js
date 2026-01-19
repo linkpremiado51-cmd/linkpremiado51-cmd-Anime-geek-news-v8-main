@@ -31,17 +31,17 @@ let unsubscribeAtual = null; // Para limpar a conexão anterior ao trocar de not
 async function carregarComentariosRealTime(idConteudo) {
     if (unsubscribeAtual) unsubscribeAtual(); // Para de ouvir a notícia anterior
 
-    window.logVisual(`Conectando mensagens de: ${idConteudo}`);
+    if (window.logVisual) window.logVisual(`Conectando mensagens de: ${idConteudo}`);
     
     const colRef = collection(db, "analises", idConteudo, "comentarios");
     const q = query(colRef, orderBy("data", "asc"));
 
     unsubscribeAtual = onSnapshot(q, (snapshot) => {
         const comentarios = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        window.logVisual(`${comentarios.length} comentários recebidos.`);
+        if (window.logVisual) window.logVisual(`${comentarios.length} comentários recebidos.`);
         Interface.renderizarListaComentarios(comentarios);
     }, (error) => {
-        window.logVisual("Erro ao ler comentários.");
+        if (window.logVisual) window.logVisual("Erro ao ler comentários.");
         console.error(error);
     });
 }
@@ -49,12 +49,12 @@ async function carregarComentariosRealTime(idConteudo) {
 // Objeto global para que outras partes do site chamem o sistema
 window.secaoComentarios = {
     abrir: (id) => {
-        window.logVisual(`Abrindo comentários: ${id}`);
+        if (window.logVisual) window.logVisual(`Abrindo comentários: ${id}`);
         Funcoes.toggleComentarios(true, id);
         carregarComentariosRealTime(id);
     },
     fechar: () => {
-        window.logVisual("Fechando seção de comentários.");
+        if (window.logVisual) window.logVisual("Fechando seção de comentários.");
         if (unsubscribeAtual) unsubscribeAtual();
         Funcoes.toggleComentarios(false);
     }
@@ -62,10 +62,13 @@ window.secaoComentarios = {
 
 // Configuração de ouvintes de eventos (Botão Fechar e Clique Fora)
 document.addEventListener('click', (e) => {
-    // Fecha no "X" ou se clicar no fundo escuro (overlay)
-    if (e.target.classList.contains('btn-geek-close') || e.target.classList.contains('modal-geek-overlay')) {
+    // CORREÇÃO: Usando as classes corretas definidas no comentarios_estilo.css e Interface
+    const clicouNoX = e.target.classList.contains('btn-close-comentarios') || e.target.id === 'btn-fechar-comentarios';
+    const clicouNoFundo = e.target.classList.contains('modal-comentarios-overlay');
+
+    if (clicouNoX || clicouNoFundo) {
         window.secaoComentarios.fechar();
     }
 });
 
-window.logVisual("Módulo Comentários: OK.");
+if (window.logVisual) window.logVisual("Módulo Comentários: OK.");
