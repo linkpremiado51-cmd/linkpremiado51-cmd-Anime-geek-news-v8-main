@@ -6,7 +6,7 @@
 import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /**
- * Controla a exibição do modal de comentários
+ * Controla a exibição do modal de comentárioS
  */
 export function toggleComentarios(abrir = true, idConteudo = null) {
     const modal = document.getElementById('modal-comentarios-global');
