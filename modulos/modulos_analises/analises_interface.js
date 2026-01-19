@@ -1,6 +1,6 @@
 /**
  * ARQUIVO: modulos/modulos_analises/analises_interface.js
- * Interface Modularizada - Versão Limpa (Sem Comentários)
+ * Interface Modularizada - Versão Integrada com Comentários Globais
  */
 
 import { limparEspacos } from './analises_funcoes.js';
@@ -141,6 +141,16 @@ export function renderizarNoticias(noticias, limite) {
                 <div class="temas-container">
                     ${criarRelacionadosHtml(news.id, news.relacionados)}
                 </div>
+            </div>
+          </div>
+
+          <div class="comments-trigger-bar" onclick="window.secaoComentarios.abrir('${news.id}')" style="cursor:pointer; padding: 15px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: rgba(138, 43, 226, 0.05);">
+            <div class="trigger-left" style="display: flex; align-items: center; gap: 10px; color: #8A2BE2; font-weight: 700; font-size: 0.85rem;">
+              <i class="fa-solid fa-circle-nodes"></i>
+              <span>Ver discussão da comunidade...</span>
+            </div>
+            <div class="trigger-right" style="color: var(--text-muted); font-size: 1.1rem;">
+                <i class="fa-solid fa-comments"></i>
             </div>
           </div>
         </article>
