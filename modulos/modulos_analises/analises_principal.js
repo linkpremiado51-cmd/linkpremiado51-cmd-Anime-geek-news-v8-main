@@ -1,6 +1,6 @@
 /**
  * ARQUIVO: modulos/modulos_analises/analises_principal.js
- * Sistema com Logs Visuais e Botão de Paginação Forçado
+ * Sistema com Logs Visuais e Botão de Paginação Forçado (Versão Limpa - Sem Comentários)
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -88,9 +88,6 @@ async function carregarBlocoEditorial() {
     }
 }
 
-/**
- * Tenta encontrar o container e força a injeção do botão
- */
 function forcarBotao(tentativas = 0) {
     const btnContainer = document.getElementById('novo-pagination-modulo');
 
