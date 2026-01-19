@@ -19,33 +19,10 @@
   
   <div id="toast-copiado">Link copiado!</div>
 
-  <div id="modal-comentarios-geek" class="modal-geek-overlay">
-    <div class="modal-geek-content">
-      <div class="modal-geek-header">
-        <div class="header-main-title">
-          <i class="fa-solid fa-comments"></i>
-          <span>Comunidade <small>Discussão Ativa</small></span>
-        </div>
-        <button onclick="window.analises.toggleComentarios(false)" class="btn-geek-close">×</button>
-      </div>
-      <div class="modal-geek-body" id="flow-comentarios"></div>
-      <div class="modal-geek-footer">
-        <div class="input-wrapper-geek">
-          <div class="mini-my-avatar" style="background: #333;">Eu</div>
-          <input type="text" placeholder="Adicione um comentário..." id="input-comentario-real">
-          <button class="btn-send-geek"><i class="fa-solid fa-paper-plane"></i></button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <script>
     (function() {
-      console.log("Injetor: Forçando carregamento do módulo de análises...");
+      console.log("Injetor: Iniciando carregamento do sistema de análises...");
       
-      // ADIÇÃO: Importa o novo módulo global de comentários sem interferir no atual
-      import('./comentarios_de_secao/comentarios_principal.js').catch(err => console.error("Erro ao carregar módulo global:", err));
-
       const scriptId = 'script-analises-loader';
       const oldScript = document.getElementById(scriptId);
       if (oldScript) oldScript.remove();
@@ -53,6 +30,7 @@
       const script = document.createElement('script');
       script.id = scriptId;
       script.type = 'module';
+      // Este arquivo agora será o responsável por importar os comentários
       script.src = './modulos/modulos_analises/analises_principal.js?v=' + Date.now();
       document.body.appendChild(script);
     })();
@@ -84,7 +62,6 @@
     
     .subcat-tag { background: var(--bg); color: var(--text-main); padding: 6px 15px; border-radius: 50px; font-size: 0.85rem; font-weight: 700; display: inline-block; margin: 5px; border: 1px solid var(--border); }
     
-    /* Botão forçado com cor roxa para teste visual no mobile */
     .btn-paginacao-geek { 
       background: #8A2BE2 !important; 
       color: #fff !important; 
