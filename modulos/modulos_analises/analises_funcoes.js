@@ -52,7 +52,7 @@ export function trocarVideo(idPlayer, idVideo) {
     // Formata o ID do vídeo para o padrão embed do YouTube caso não seja uma URL completa
     let novoSrc = idVideo;
     if (!idVideo.includes('http')) {
-        novoSrc = `https://www.youtube.com/embed/${idVideo}`;
+        novoSrc = `http://googleusercontent.com/youtube.com/${idVideo}`;
     }
     
     // Adiciona os parâmetros de autoplay e interface
@@ -76,34 +76,5 @@ export function fecharModalPrincipal() {
     if (url.searchParams.has('id')) {
         url.searchParams.delete('id');
         window.history.pushState({}, '', url.pathname + url.search);
-    }
-}
-
-/**
- * Controla o modal de comentários da comunidade
- */
-export function toggleComentarios(abrir = true, idNoticia = null) {
-    const modalComentarios = document.getElementById('modal-comentarios-geek');
-    if (!modalComentarios) return;
-
-    if (abrir) {
-        modalComentarios.style.display = 'flex';
-        // Pequeno delay para permitir a transição de opacidade/transform do CSS
-        setTimeout(() => {
-            modalComentarios.classList.add('active');
-        }, 10);
-        document.body.style.overflow = 'hidden'; // Trava o scroll do fundo
-        
-        if (idNoticia) {
-            console.log("Sistema Geek: Carregando discussão para:", idNoticia);
-            // Aqui você pode disparar a função de carregar comentários do Firebase
-        }
-        
-    } else {
-        modalComentarios.classList.remove('active');
-        setTimeout(() => {
-            modalComentarios.style.display = 'none';
-        }, 300);
-        document.body.style.overflow = 'auto'; // Libera o scroll
     }
 }
