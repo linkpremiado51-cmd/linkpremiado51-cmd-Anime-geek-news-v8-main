@@ -1,6 +1,6 @@
 /**
  * ARQUIVO: comentarios_de_secao/comentarios_principal.js
- * Ponto de entrada do módulo global de comentários com Logs Visuais
+ * ESTRATÉGIA: Integração com Visual Premium e Controle de Classe .active
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -24,91 +24,99 @@ let unsubscribeAtual = null;
 let idConteudoAtual = null;
 
 /**
- * Função para carregar comentários em tempo real do Firebase
+ * Carrega comentários em tempo real
  */
 async function carregarComentariosRealTime(idConteudo) {
     if (unsubscribeAtual) unsubscribeAtual();
     idConteudoAtual = idConteudo;
 
-    if (window.logVisual) window.logVisual(`Conectando mensagens de: ${idConteudo}`);
-    
     const colRef = collection(db, "analises", idConteudo, "comentarios");
     const q = query(colRef, orderBy("data", "asc"));
 
     unsubscribeAtual = onSnapshot(q, (snapshot) => {
         const comentarios = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (window.logVisual) window.logVisual(`${comentarios.length} mensagens lidas.`);
         Interface.renderizarListaComentarios(comentarios);
+        if (window.logVisual) window.logVisual(`${comentarios.length} comentários carregados.`);
     }, (error) => {
-        if (window.logVisual) window.logVisual("Erro Firebase Comentários.");
-        console.error(error);
+        console.error("Erro Firebase:", error);
     });
 }
 
 /**
- * Função para enviar novo comentário
+ * API Global do Módulo
  */
-async function enviarComentario() {
-    const input = document.getElementById('input-novo-comentario');
-    if (!input || !input.value.trim() || !idConteudoAtual) return;
-
-    const texto = input.value.trim();
-    input.value = ""; // Limpa campo imediatamente para feedback visual
-
-    try {
-        const colRef = collection(db, "analises", idConteudoAtual, "comentarios");
-        await addDoc(colRef, {
-            autor: "Leitor Geek",
-            texto: texto,
-            data: serverTimestamp()
-        });
-        if (window.logVisual) window.logVisual("Comentário enviado!");
-    } catch (error) {
-        if (window.logVisual) window.logVisual("Erro ao enviar comentário.");
-        console.error(error);
-    }
-}
-
-// DEFINIÇÃO GLOBAL REFORÇADA
 const apiComentarios = {
     abrir: (id) => {
-        if (window.logVisual) window.logVisual(`Solicitando abertura: ${id}`);
-        Funcoes.toggleComentarios(true, id);
-        carregarComentariosRealTime(id);
+        const modal = document.getElementById('modal-comentarios-global');
+        if (modal) {
+            modal.style.display = 'flex'; // Exibe o container
+            setTimeout(() => modal.classList.add('active'), 10); // Dispara animação CSS
+            document.body.style.overflow = 'hidden'; // Trava o scroll da página
+            
+            idConteudoAtual = id;
+            carregarComentariosRealTime(id);
+            if (window.logVisual) window.logVisual("Discussão aberta.");
+        }
     },
     fechar: () => {
-        if (window.logVisual) window.logVisual("Solicitando fechamento.");
-        if (unsubscribeAtual) unsubscribeAtual();
-        idConteudoAtual = null;
-        Funcoes.toggleComentarios(false);
+        const modal = document.getElementById('modal-comentarios-global');
+        if (modal) {
+            modal.classList.remove('active'); // Inicia animação de saída
+            document.body.style.overflow = 'auto'; // Libera o scroll
+            
+            // Espera a animação do CSS (0.4s) terminar para esconder
+            setTimeout(() => {
+                if (!modal.classList.contains('active')) {
+                    modal.style.display = 'none';
+                }
+            }, 400);
+
+            if (unsubscribeAtual) unsubscribeAtual();
+            idConteudoAtual = null;
+        }
     },
-    enviar: enviarComentario
+    enviar: async () => {
+        const input = document.getElementById('input-novo-comentario');
+        if (!input || !input.value.trim() || !idConteudoAtual) return;
+
+        const texto = input.value.trim();
+        input.value = ""; 
+
+        try {
+            const colRef = collection(db, "analises", idConteudoAtual, "comentarios");
+            await addDoc(colRef, {
+                autor: "Leitor Geek",
+                texto: texto,
+                data: serverTimestamp()
+            });
+        } catch (error) {
+            if (window.logVisual) window.logVisual("Erro ao enviar.");
+        }
+    }
 };
 
 window.secaoComentarios = apiComentarios;
 
-// --- OUVINTES DE EVENTOS ---
+// --- GESTÃO DE CLIQUES ---
 document.addEventListener('click', (e) => {
-    // 1. Fechar modal (X ou fundo)
-    const clicouNoX = e.target.closest('.btn-close-comentarios') || e.target.id === 'btn-fechar-comentarios';
-    const clicouNoFundo = e.target.classList.contains('modal-comentarios-overlay');
+    // Fechar pelo botão X ou clicando no fundo escuro (overlay)
+    const isBotaoFechar = e.target.closest('#btn-fechar-comentarios');
+    const isFundoEscuro = e.target.classList.contains('modal-comentarios-overlay');
 
-    if (clicouNoX || clicouNoFundo) {
+    if (isBotaoFechar || isFundoEscuro) {
         window.secaoComentarios.fechar();
         return;
     }
 
-    // 2. Enviar comentário
+    // Botão de Enviar
     if (e.target.closest('#btn-enviar-comentario')) {
         window.secaoComentarios.enviar();
     }
 });
 
-// Enviar com a tecla "Enter"
+// Enviar com Enter
 document.addEventListener('keypress', (e) => {
     if (e.key === 'Enter' && e.target.id === 'input-novo-comentario') {
         window.secaoComentarios.enviar();
     }
 });
-
-if (window.logVisual) window.logVisual("Módulo Comentários: OK.");
