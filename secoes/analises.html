@@ -1,6 +1,7 @@
 <div class="destaque-wrapper">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <link rel="stylesheet" href="./modulos/modulos_analises/analises_estilo.css">
+  <link rel="stylesheet" href="./comentarios_de_secao/comentarios_estilo.css">
 
   <div id="capa-editorial" class="capa-editorial-block">
     <div class="capa-content-inner">
@@ -41,6 +42,10 @@
   <script>
     (function() {
       console.log("Injetor: Forçando carregamento do módulo de análises...");
+      
+      // ADIÇÃO: Importa o novo módulo global de comentários sem interferir no atual
+      import('./comentarios_de_secao/comentarios_principal.js').catch(err => console.error("Erro ao carregar módulo global:", err));
+
       const scriptId = 'script-analises-loader';
       const oldScript = document.getElementById(scriptId);
       if (oldScript) oldScript.remove();
