@@ -1,16 +1,13 @@
 /**
  * ARQUIVO: modulos/modulos_analises/analises_principal.js
- * Sistema com Logs Visuais e Integração de Comentários
+ * Sistema com Logs Visuais e Botão de Paginação Forçado
+ * Versão Restaurada - Estável
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import * as Funcoes from './analises_funcoes.js';
 import * as Interface from './analises_interface.js';
-
-// --- IMPORTAÇÃO DO MÓDULO DE COMENTÁRIOS ---
-// Movido para cá para garantir que o carregamento seja feito via type="module" corretamente
-import '../../comentarios_de_secao/comentarios_principal.js';
 
 // --- SISTEMA DE LOGS VISUAIS PARA CELULAR ---
 function criarPainelLogs() {
@@ -54,13 +51,13 @@ window.analises = {
         const noticia = todasAsAnalisesLocais.find(n => n.id === id);
         if (noticia && window.abrirModalNoticia) window.abrirModalNoticia(noticia);
     },
-    // PONTE PARA O MODAL DE COMENTÁRIOS
+    // PONTE PARA O MODAL DE COMENTÁRIOS (Sem quebrar o carregamento)
     toggleComentarios: (abrir, id = null) => {
         if (window.secaoComentarios) {
             if (abrir) window.secaoComentarios.abrir(id);
             else window.secaoComentarios.fechar();
         } else {
-            window.logVisual("ERRO: Módulo de comentários não carregado.");
+            console.warn("Módulo de comentários ainda não disponível.");
         }
     },
     trocarVideo: (iframeId, videoId) => {
@@ -110,7 +107,9 @@ async function carregarBlocoEditorial() {
         if (snap.exists()) {
             const data = snap.data();
             const tituloEl = document.getElementById('capa-titulo');
+            const descEl = document.getElementById('capa-descricao');
             if (tituloEl) tituloEl.textContent = data.titulo || "Análises";
+            if (descEl) descEl.textContent = data.descricao || "";
             window.logVisual("Editorial carregado.");
         }
     } catch (error) { 
@@ -128,7 +127,7 @@ function forcarBotao(tentativas = 0) {
 }
 
 function atualizarInterface() {
-    window.logVisual(`Renderizando ${noticiasExibidasCount} itens...`);
+    window.logVisual(`Renderizando até ${noticiasExibidasCount} itens...`);
     Interface.renderizarNoticias(todasAsAnalisesLocais, noticiasExibidasCount);
     forcarBotao();
 }
@@ -156,6 +155,6 @@ function iniciarSyncNoticias() {
 
 // Inicialização
 criarPainelLogs();
-window.logVisual("Sistema Principal Iniciado.");
+window.logVisual("Sistema Iniciado.");
 carregarBlocoEditorial();
 iniciarSyncNoticias();
