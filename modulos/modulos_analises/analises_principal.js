@@ -1,6 +1,7 @@
 /**
  * ARQUIVO: modulos/modulos_analises/analises_principal.js
  * Sistema com Logs Visuais e Botão de Paginação Forçado
+ * Versão Integrada - Corrigindo funções de interface ausentes para evitar travamentos
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -49,6 +50,27 @@ window.analises = {
     abrirNoModalGlobal: (id) => {
         const noticia = todasAsAnalisesLocais.find(n => n.id === id);
         if (noticia && window.abrirModalNoticia) window.abrirModalNoticia(noticia);
+    },
+    // Adicionado para suportar o carrossel de vídeos na interface
+    trocarVideo: (iframeId, videoId) => {
+        const iframe = document.getElementById(iframeId);
+        if (iframe) {
+            iframe.src = `https://www.youtube.com/embed/${videoId}`;
+            window.logVisual("Vídeo trocado.");
+        }
+    },
+    // Adicionado para suportar o botão de compartilhamento na interface
+    compartilharNoticia: (titulo, url) => {
+        if (navigator.share) {
+            navigator.share({ title: titulo, url: url });
+        } else {
+            navigator.clipboard.writeText(url);
+            const toast = document.getElementById('toast-copiado');
+            if (toast) {
+                toast.classList.add('mostrar');
+                setTimeout(() => toast.classList.remove('mostrar'), 2000);
+            }
+        }
     },
     carregarMaisNovo: () => {
         const totalNoBanco = todasAsAnalisesLocais.length;
