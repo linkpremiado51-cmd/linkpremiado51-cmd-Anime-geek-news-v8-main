@@ -61,7 +61,7 @@ export function renderizarBotaoPaginacao() {
         </div>
     `;
     
-    logInterface("Botão Injetado: Forçando exibição.");
+    logInterface("Botão Injetado.");
 }
 
 /**
@@ -144,7 +144,9 @@ export function renderizarNoticias(noticias, limite) {
             </div>
           </div>
 
-          <div class="comments-trigger-bar" onclick="window.secaoComentarios.abrir('${news.id}')" style="cursor:pointer; padding: 15px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: rgba(138, 43, 226, 0.05);">
+          <div class="comments-trigger-bar" 
+               onclick="if(window.secaoComentarios) { window.secaoComentarios.abrir('${news.id}') } else { console.log('Aguardando módulo...') }" 
+               style="cursor:pointer; padding: 15px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: rgba(138, 43, 226, 0.05);">
             <div class="trigger-left" style="display: flex; align-items: center; gap: 10px; color: #8A2BE2; font-weight: 700; font-size: 0.85rem;">
               <i class="fa-solid fa-circle-nodes"></i>
               <span>Ver discussão da comunidade...</span>
