@@ -1,6 +1,6 @@
 /**
  * ARQUIVO: modulos/modulos_analises/analises_interface.js
- * Interface Modularizada - Versão Limpa (Sem Comentários)
+ * Interface Modularizada - Versão Integrada com Comentários Globais
  */
 
 import { limparEspacos } from './analises_funcoes.js';
@@ -141,6 +141,16 @@ export function renderizarNoticias(noticias, limite) {
                 <div class="temas-container">
                     ${criarRelacionadosHtml(news.id, news.relacionados)}
                 </div>
+            </div>
+          </div>
+
+          <div class="comments-trigger-bar" onclick="window.secaoComentarios.abrir('${news.id}')">
+            <div class="trigger-left">
+              <i class="fa-solid fa-circle-nodes"></i>
+              <span>Ver discussão da comunidade...</span>
+            </div>
+            <div class="trigger-right">
+                <i class="fa-solid fa-comments"></i>
             </div>
           </div>
         </article>
