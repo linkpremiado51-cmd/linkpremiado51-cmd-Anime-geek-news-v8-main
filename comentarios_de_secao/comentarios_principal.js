@@ -4,7 +4,7 @@
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, query, orderBy, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import * as Interface from './comentarios_interface.js';
 import * as Funcoes from './comentarios_funcoes.js';
 
@@ -20,20 +20,15 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Injeta a estrutura apenas quando o DOM estiver pronto para evitar erros de container ausente
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => Interface.injetarEstruturaModal());
-} else {
-    Interface.injetarEstruturaModal();
-}
-
 let unsubscribeAtual = null;
+let idConteudoAtual = null;
 
 /**
  * Função para carregar comentários em tempo real do Firebase
  */
 async function carregarComentariosRealTime(idConteudo) {
     if (unsubscribeAtual) unsubscribeAtual();
+    idConteudoAtual = idConteudo;
 
     if (window.logVisual) window.logVisual(`Conectando mensagens de: ${idConteudo}`);
     
@@ -50,8 +45,31 @@ async function carregarComentariosRealTime(idConteudo) {
     });
 }
 
+/**
+ * Função para enviar novo comentário
+ */
+async function enviarComentario() {
+    const input = document.getElementById('input-novo-comentario');
+    if (!input || !input.value.trim() || !idConteudoAtual) return;
+
+    const texto = input.value.trim();
+    input.value = ""; // Limpa campo imediatamente para feedback visual
+
+    try {
+        const colRef = collection(db, "analises", idConteudoAtual, "comentarios");
+        await addDoc(colRef, {
+            autor: "Leitor Geek",
+            texto: texto,
+            data: serverTimestamp()
+        });
+        if (window.logVisual) window.logVisual("Comentário enviado!");
+    } catch (error) {
+        if (window.logVisual) window.logVisual("Erro ao enviar comentário.");
+        console.error(error);
+    }
+}
+
 // DEFINIÇÃO GLOBAL REFORÇADA
-// Isso garante que o analises_principal.js e os botões no HTML enxerguem as funções
 const apiComentarios = {
     abrir: (id) => {
         if (window.logVisual) window.logVisual(`Solicitando abertura: ${id}`);
@@ -61,20 +79,35 @@ const apiComentarios = {
     fechar: () => {
         if (window.logVisual) window.logVisual("Solicitando fechamento.");
         if (unsubscribeAtual) unsubscribeAtual();
+        idConteudoAtual = null;
         Funcoes.toggleComentarios(false);
-    }
+    },
+    enviar: enviarComentario
 };
 
 window.secaoComentarios = apiComentarios;
 
-// Ouvintes de eventos para fechar o modal
+// --- OUVINTES DE EVENTOS ---
 document.addEventListener('click', (e) => {
-    // Verifica se clicou no botão de fechar (X) ou no overlay (fundo escuro)
+    // 1. Fechar modal (X ou fundo)
     const clicouNoX = e.target.closest('.btn-close-comentarios') || e.target.id === 'btn-fechar-comentarios';
     const clicouNoFundo = e.target.classList.contains('modal-comentarios-overlay');
 
     if (clicouNoX || clicouNoFundo) {
         window.secaoComentarios.fechar();
+        return;
+    }
+
+    // 2. Enviar comentário
+    if (e.target.closest('#btn-enviar-comentario')) {
+        window.secaoComentarios.enviar();
+    }
+});
+
+// Enviar com a tecla "Enter"
+document.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && e.target.id === 'input-novo-comentario') {
+        window.secaoComentarios.enviar();
     }
 });
 
