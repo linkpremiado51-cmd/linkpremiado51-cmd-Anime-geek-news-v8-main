@@ -4,7 +4,7 @@
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, onSnapshot, addDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import * as Interface from './comentarios_interface.js';
 import * as Funcoes from './comentarios_funcoes.js';
 
@@ -20,16 +20,20 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Injeta o HTML e CSS assim que o módulo é importado
-Interface.injetarEstruturaModal();
+// Injeta a estrutura apenas quando o DOM estiver pronto para evitar erros de container ausente
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => Interface.injetarEstruturaModal());
+} else {
+    Interface.injetarEstruturaModal();
+}
 
-let unsubscribeAtual = null; // Para limpar a conexão anterior ao trocar de notícia
+let unsubscribeAtual = null;
 
 /**
  * Função para carregar comentários em tempo real do Firebase
  */
 async function carregarComentariosRealTime(idConteudo) {
-    if (unsubscribeAtual) unsubscribeAtual(); // Para de ouvir a notícia anterior
+    if (unsubscribeAtual) unsubscribeAtual();
 
     if (window.logVisual) window.logVisual(`Conectando mensagens de: ${idConteudo}`);
     
@@ -38,32 +42,35 @@ async function carregarComentariosRealTime(idConteudo) {
 
     unsubscribeAtual = onSnapshot(q, (snapshot) => {
         const comentarios = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (window.logVisual) window.logVisual(`${comentarios.length} comentários recebidos.`);
+        if (window.logVisual) window.logVisual(`${comentarios.length} mensagens lidas.`);
         Interface.renderizarListaComentarios(comentarios);
     }, (error) => {
-        if (window.logVisual) window.logVisual("Erro ao ler comentários.");
+        if (window.logVisual) window.logVisual("Erro Firebase Comentários.");
         console.error(error);
     });
 }
 
-// Objeto global para que outras partes do site chamem o sistema
-window.secaoComentarios = {
+// DEFINIÇÃO GLOBAL REFORÇADA
+// Isso garante que o analises_principal.js e os botões no HTML enxerguem as funções
+const apiComentarios = {
     abrir: (id) => {
-        if (window.logVisual) window.logVisual(`Abrindo comentários: ${id}`);
+        if (window.logVisual) window.logVisual(`Solicitando abertura: ${id}`);
         Funcoes.toggleComentarios(true, id);
         carregarComentariosRealTime(id);
     },
     fechar: () => {
-        if (window.logVisual) window.logVisual("Fechando seção de comentários.");
+        if (window.logVisual) window.logVisual("Solicitando fechamento.");
         if (unsubscribeAtual) unsubscribeAtual();
         Funcoes.toggleComentarios(false);
     }
 };
 
-// Configuração de ouvintes de eventos (Botão Fechar e Clique Fora)
+window.secaoComentarios = apiComentarios;
+
+// Ouvintes de eventos para fechar o modal
 document.addEventListener('click', (e) => {
-    // CORREÇÃO: Usando as classes corretas definidas no comentarios_estilo.css e Interface
-    const clicouNoX = e.target.classList.contains('btn-close-comentarios') || e.target.id === 'btn-fechar-comentarios';
+    // Verifica se clicou no botão de fechar (X) ou no overlay (fundo escuro)
+    const clicouNoX = e.target.closest('.btn-close-comentarios') || e.target.id === 'btn-fechar-comentarios';
     const clicouNoFundo = e.target.classList.contains('modal-comentarios-overlay');
 
     if (clicouNoX || clicouNoFundo) {
