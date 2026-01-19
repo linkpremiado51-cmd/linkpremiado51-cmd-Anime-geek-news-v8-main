@@ -1,32 +1,14 @@
 /**
  * ARQUIVO: modulos/modulos_analises/analises_principal.js
- * ESTRATÉGIA: Controle Direto para abertura do Modal
+ * STATUS: Unificado (Controle total de Notícias e Comentários)
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, doc, getDoc, query, orderBy, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import * as Funcoes from './analises_funcoes.js';
 import * as Interface from './analises_interface.js';
 
-// --- SISTEMA DE LOGS VISUAIS ---
-function criarPainelLogs() {
-    if (document.getElementById('debug-mobile')) return;
-    const panel = document.createElement('div');
-    panel.id = 'debug-mobile';
-    panel.style = "position:fixed; top:0; left:0; width:100%; background:rgba(0,0,0,0.8); color:#0f0; font-family:monospace; font-size:10px; z-index:99999; padding:5px; pointer-events:none; max-height:80px; overflow:hidden;";
-    document.body.appendChild(panel);
-}
-
-window.logVisual = function(msg) {
-    const panel = document.getElementById('debug-mobile');
-    if (panel) {
-        const line = document.createElement('div');
-        line.textContent = `> ${msg}`;
-        panel.prepend(line);
-    }
-    console.log(msg);
-};
-
+// --- CONFIGURAÇÃO E LOGS ---
 const firebaseConfig = {
     apiKey: "AIzaSyBC_ad4X9OwCHKvcG_pNQkKEl76Zw2tu6o",
     authDomain: "anigeeknews.firebaseapp.com",
@@ -42,39 +24,89 @@ const db = getFirestore(app);
 
 let todasAsAnalisesLocais = [];
 let noticiasExibidasCount = 5;
+let idComentariosAtivo = null;
+let unsubscribeComentarios = null;
 
+// --- SISTEMA DE LOGS ---
+function criarPainelLogs() {
+    if (document.getElementById('debug-mobile')) return;
+    const panel = document.createElement('div');
+    panel.id = 'debug-mobile';
+    panel.style = "position:fixed; top:0; left:0; width:100%; background:rgba(0,0,0,0.8); color:#0f0; font-family:monospace; font-size:10px; z-index:999999; padding:5px; pointer-events:none; max-height:60px; overflow:hidden;";
+    document.body.appendChild(panel);
+}
+
+window.logVisual = (msg) => {
+    const panel = document.getElementById('debug-mobile');
+    if (panel) {
+        const line = document.createElement('div');
+        line.textContent = `> ${msg}`;
+        panel.prepend(line);
+    }
+};
+
+// --- LÓGICA UNIFICADA DE COMENTÁRIOS ---
+
+async function carregarMensagensFirebase(id) {
+    if (unsubscribeComentarios) unsubscribeComentarios();
+    idComentariosAtivo = id;
+
+    const colRef = collection(db, "analises", id, "comentarios");
+    const q = query(colRef, orderBy("data", "asc"));
+
+    unsubscribeComentarios = onSnapshot(q, (snapshot) => {
+        const comentarios = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        Interface.renderizarListaComentarios(comentarios);
+    });
+}
+
+async function enviarMensagemFirebase() {
+    const input = document.getElementById('input-novo-comentario');
+    if (!input || !input.value.trim() || !idComentariosAtivo) return;
+
+    const texto = input.value.trim();
+    input.value = ""; // Limpeza rápida
+
+    try {
+        await addDoc(collection(db, "analises", idComentariosAtivo, "comentarios"), {
+            autor: "Leitor Geek",
+            texto: texto,
+            data: serverTimestamp()
+        });
+    } catch (e) {
+        window.logVisual("Erro ao comentar.");
+    }
+}
+
+// --- API GLOBAL ---
 window.analises = {
     ...Funcoes,
     
-    // NOVA ESTRATÉGIA: Forçar abertura direta pelo DOM
-    toggleComentarios: (abrir, id = null) => {
+    abrirComentarios: (id) => {
         const modal = document.getElementById('modal-comentarios-global');
-        if (!modal) {
-            window.logVisual("ERRO: Estrutura do modal não encontrada no HTML.");
-            return;
-        }
+        if (!modal) return;
 
-        if (abrir) {
-            window.logVisual("Abrindo Modal para: " + id);
-            modal.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-            
-            // Se o módulo de comentários existir, carrega as mensagens
-            if (window.secaoComentarios && typeof window.secaoComentarios.abrir === 'function') {
-                window.secaoComentarios.abrir(id);
-            }
-        } else {
-            modal.style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('active'), 10);
+        document.body.style.overflow = 'hidden';
+        
+        carregarMensagensFirebase(id);
+        window.logVisual("Discussão: " + id);
     },
 
-    trocarVideo: (iframeId, videoId) => {
-        const iframe = document.getElementById(iframeId);
-        if (iframe) {
-            iframe.src = `https://www.youtube.com/embed/${videoId}`;
-            window.logVisual("Vídeo trocado.");
-        }
+    fecharComentarios: () => {
+        const modal = document.getElementById('modal-comentarios-global');
+        if (!modal) return;
+
+        modal.classList.remove('active');
+        document.body.style.overflow = 'auto';
+        
+        setTimeout(() => {
+            if (!modal.classList.contains('active')) modal.style.display = 'none';
+        }, 400);
+
+        if (unsubscribeComentarios) unsubscribeComentarios();
+        idComentariosAtivo = null;
     },
 
     carregarMaisNovo: () => {
@@ -83,41 +115,30 @@ window.analises = {
     }
 };
 
-// OUVINTE GLOBAL DE CLIQUES
+// --- OUVINTE GLOBAL DE EVENTOS ---
 document.addEventListener('click', (e) => {
-    // Clique na barra de comentários
-    const trigger = e.target.closest('.comments-trigger-bar');
-    if (trigger) {
-        e.preventDefault();
-        const artigo = trigger.closest('article');
-        const id = artigo ? artigo.id.replace('artigo-', '') : null;
-        if (id) window.analises.toggleComentarios(true, id);
-        return;
+    // 1. Fechar Modal
+    if (e.target.closest('#btn-fechar-comentarios') || e.target.classList.contains('modal-comentarios-overlay')) {
+        window.analises.fecharComentarios();
     }
-
-    // Clique no botão carregar mais
+    // 2. Enviar Comentário
+    if (e.target.closest('#btn-enviar-comentario')) {
+        enviarMensagemFirebase();
+    }
+    // 3. Botão Carregar Mais
     if (e.target.closest('#btn-carregar-mais')) {
-        e.preventDefault();
         window.analises.carregarMaisNovo();
     }
 });
 
-async function carregarBlocoEditorial() {
-    const blocoRef = doc(db, "sobre_nos", "analises_bloco_1");
-    try {
-        const snap = await getDoc(blocoRef);
-        if (snap.exists()) {
-            const data = snap.data();
-            const tituloEl = document.getElementById('capa-titulo');
-            const descEl = document.getElementById('capa-descricao');
-            if (tituloEl) tituloEl.textContent = data.titulo || "Análises";
-            if (descEl) descEl.textContent = data.descricao || "";
-        }
-    } catch (error) { 
-        window.logVisual("Erro Editorial."); 
+// Enviar com Enter
+document.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && e.target.id === 'input-novo-comentario') {
+        enviarMensagemFirebase();
     }
-}
+});
 
+// --- SINCRONIZAÇÃO DE NOTÍCIAS ---
 function atualizarInterface() {
     Interface.renderizarNoticias(todasAsAnalisesLocais, noticiasExibidasCount);
     Interface.renderizarBotaoPaginacao();
@@ -125,27 +146,16 @@ function atualizarInterface() {
 
 function iniciarSyncNoticias() {
     window.logVisual("Sincronizando banco...");
-    try {
-        onSnapshot(collection(db, "analises"), (snapshot) => {
-            window.logVisual(`${snapshot.size} itens recebidos.`);
-            todasAsAnalisesLocais = snapshot.docs
-                .map(doc => ({ 
-                    id: doc.id, 
-                    ...doc.data(),
-                    videoPrincipal: doc.data().videoPrincipal?.replace("watch?v=", "embed/") || ""
-                }))
-                .sort((a, b) => (b.lastUpdate || 0) - (a.lastUpdate || 0));
-            
-            atualizarInterface();
-        }, (err) => {
-            window.logVisual("Erro Firebase: " + err.code);
-        });
-    } catch (e) {
-        window.logVisual("Falha na sincronização.");
-    }
+    onSnapshot(collection(db, "analises"), (snapshot) => {
+        todasAsAnalisesLocais = snapshot.docs.map(doc => ({ 
+            id: doc.id, 
+            ...doc.data(),
+            videoPrincipal: doc.data().videoPrincipal?.replace("watch?v=", "embed/") || ""
+        })).sort((a, b) => (b.lastUpdate || 0) - (a.lastUpdate || 0));
+        atualizarInterface();
+    });
 }
 
 // Inicialização
 criarPainelLogs();
-carregarBlocoEditorial();
 iniciarSyncNoticias();
