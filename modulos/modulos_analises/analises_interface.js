@@ -1,161 +1,149 @@
 /**
- * ARQUIVO: modulos/modulos_analises/analises_principal.js
- * Sistema com Logs Visuais e Botão de Paginação Forçado
- * VERSÃO CORRIGIDA: Mantém funções vitais para evitar travamento no carregamento.
+ * ARQUIVO: modulos/modulos_analises/analises_interface.js
+ * Interface Modularizada - Versão Limpa (Sem Comentários)
  */
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import * as Funcoes from './analises_funcoes.js';
-import * as Interface from './analises_interface.js';
+import { limparEspacos } from './analises_funcoes.js';
 
-// --- SISTEMA DE LOGS VISUAIS PARA CELULAR ---
-function criarPainelLogs() {
-    if (document.getElementById('debug-mobile')) return;
-    const panel = document.createElement('div');
-    panel.id = 'debug-mobile';
-    panel.style = "position:fixed; top:0; left:0; width:100%; background:rgba(0,0,0,0.8); color:#0f0; font-family:monospace; font-size:10px; z-index:99999; padding:5px; pointer-events:none; max-height:100px; overflow:hidden;";
-    document.body.appendChild(panel);
+// Função auxiliar para conversar com o painel de debug do principal.js
+function logInterface(msg) {
+    if (typeof window.logVisual === 'function') {
+        window.logVisual(msg);
+    }
 }
 
-window.logVisual = function(msg) {
-    const panel = document.getElementById('debug-mobile');
-    if (panel) {
-        const line = document.createElement('div');
-        line.textContent = `> ${new Date().toLocaleTimeString()}: ${msg}`;
-        panel.prepend(line);
-    }
-    console.log(msg);
-};
-// --------------------------------------------
+/**
+ * Cria o HTML da ficha técnica (grid de informações)
+ */
+export function criarFichaHtml(ficha) {
+    if (!ficha || !Array.isArray(ficha)) return "";
+    return ficha.map(item => `
+        <div class="info-item">
+            <span class="info-label">${item.label}</span>
+            <span class="info-valor">${item.valor}</span>
+        </div>
+    `).join('');
+}
 
-const firebaseConfig = {
-    apiKey: "AIzaSyBC_ad4X9OwCHKvcG_pNQkKEl76Zw2tu6o",
-    authDomain: "anigeeknews.firebaseapp.com",
-    projectId: "anigeeknews",
-    storageBucket: "anigeeknews.firebasestorage.app",
-    messagingSenderId: "769322939926",
-    appId: "1:769322939926:web:6eb91a96a3f74670882737",
-    measurementId: "G-G5T8CCRGZT"
-};
+/**
+ * Gera o HTML dos vídeos relacionados (carrossel)
+ */
+function criarRelacionadosHtml(newsId, relacionados) {
+    if (!relacionados || !Array.isArray(relacionados)) return "";
+    return relacionados.map(rel => `
+        <div class="tema-card" onclick="window.analises.trocarVideo('player-${newsId}', '${rel.idVid}')">
+            <div class="thumb-wrapper">
+                <img src="${limparEspacos(rel.thumb)}" class="tema-thumb" alt="${rel.titulo}">
+                <div class="play-overlay"><i class="fa-solid fa-play"></i></div>
+            </div>
+            <div class="tema-titulo">${rel.titulo}</div>
+        </div>
+    `).join('');
+}
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-let todasAsAnalisesLocais = [];
-let noticiasExibidasCount = 5;
-
-// Objeto Global unificado para a Interface
-window.analises = {
-    ...Funcoes,
+/**
+ * Injeta o HTML do botão no placeholder fixo de forma FORÇADA.
+ */
+export function renderizarBotaoPaginacao() {
+    const paginationWrapper = document.getElementById('novo-pagination-modulo');
     
-    // Abre o modal de detalhes (se houver um sistema de modal global de notícias)
-    abrirNoModalGlobal: (id) => {
-        const noticia = todasAsAnalisesLocais.find(n => n.id === id);
-        if (noticia && window.abrirModalNoticia) window.abrirModalNoticia(noticia);
-    },
-
-    // Função de carregar mais itens (Paginação)
-    carregarMaisNovo: () => {
-        const totalNoBanco = todasAsAnalisesLocais.length;
-        if (noticiasExibidasCount >= totalNoBanco) {
-            window.logVisual(`Fim da lista! (Mostrando ${totalNoBanco})`);
-        } else {
-            noticiasExibidasCount += 5;
-            window.logVisual(`Expandindo para ${noticiasExibidasCount}...`);
-            atualizarInterface();
-        }
-    },
-
-    // Troca o vídeo no iframe (Usado pelo carrossel de relacionados)
-    trocarVideo: (iframeId, videoId) => {
-        const iframe = document.getElementById(iframeId);
-        if (iframe) {
-            iframe.src = `https://www.youtube.com/embed/${videoId}`;
-            window.logVisual("Vídeo trocado.");
-        }
-    },
-
-    // Função de compartilhamento
-    compartilharNoticia: (titulo, url) => {
-        if (navigator.share) {
-            navigator.share({ title: titulo, url: url });
-        } else {
-            navigator.clipboard.writeText(url);
-            const toast = document.getElementById('toast-copiado');
-            if (toast) {
-                toast.classList.add('mostrar');
-                setTimeout(() => toast.classList.remove('mostrar'), 2000);
-            }
-        }
+    if (!paginationWrapper) {
+        logInterface("ERRO: Placeholder do botão não achado na interface.");
+        return;
     }
-};
 
-// Delegamento de Eventos para o Botão de Paginação
-document.addEventListener('click', (e) => {
-    const target = e.target.closest('#btn-carregar-mais');
-    if (target) {
-        e.preventDefault();
-        window.analises.carregarMaisNovo();
-    }
-});
-
-async function carregarBlocoEditorial() {
-    window.logVisual("Buscando editorial...");
-    const blocoRef = doc(db, "sobre_nos", "analises_bloco_1");
-    try {
-        const snap = await getDoc(blocoRef);
-        if (snap.exists()) {
-            const data = snap.data();
-            const tituloEl = document.getElementById('capa-titulo');
-            const descEl = document.getElementById('capa-descricao');
-            if (tituloEl) tituloEl.textContent = data.titulo || "Análises";
-            if (descEl) descEl.textContent = data.descricao || "";
-            window.logVisual("Editorial carregado.");
-        }
-    } catch (error) { 
-        window.logVisual("Erro Editorial."); 
-    }
+    paginationWrapper.innerHTML = `
+        <div style="text-align: center; padding: 20px 0 60px 0; width: 100%;">
+            <button class="btn-paginacao-geek" id="btn-carregar-mais">
+                <i class="fa-solid fa-chevron-down"></i>
+                <span>Carregar mais análises</span>
+            </button>
+        </div>
+    `;
+    
+    logInterface("Botão Injetado: Forçando exibição.");
 }
 
-function forcarBotao(tentativas = 0) {
-    const btnContainer = document.getElementById('novo-pagination-modulo');
-    if (btnContainer) {
-        Interface.renderizarBotaoPaginacao();
-    } else if (tentativas < 10) {
-        setTimeout(() => forcarBotao(tentativas + 1), 1000);
+/**
+ * Renderiza a lista de notícias no container principal
+ */
+export function renderizarNoticias(noticias, limite) {
+    const container = document.getElementById('container-principal');
+    if (!container) return;
+
+    const baseUrl = window.location.origin + window.location.pathname;
+    const listaParaExibir = noticias.slice(0, limite);
+
+    if (listaParaExibir.length === 0) {
+        container.innerHTML = `
+            <div style="text-align:center; padding:80px 20px; opacity:0.6;">
+                <i class="fa-solid fa-layer-group" style="font-size:3rem; margin-bottom:20px; display:block;"></i>
+                <p>Nenhuma análise encontrada nesta categoria.</p>
+            </div>`;
+        return;
     }
-}
 
-function atualizarInterface() {
-    window.logVisual(`Renderizando ${noticiasExibidasCount} itens.`);
-    Interface.renderizarNoticias(todasAsAnalisesLocais, noticiasExibidasCount);
-    forcarBotao();
-}
+    container.innerHTML = listaParaExibir.map(news => {
+        const shareUrl = `${baseUrl}?id=${encodeURIComponent(news.id)}`;
+        const viewCount = news.views || Math.floor(Math.random() * 900) + 100 + "K";
 
-function iniciarSyncNoticias() {
-    window.logVisual("Conectando ao Firebase...");
-    onSnapshot(collection(db, "analises"), (snapshot) => {
-        window.logVisual(`${snapshot.size} análises encontradas.`);
-        todasAsAnalisesLocais = snapshot.docs
-            .map(doc => ({ 
-                id: doc.id, 
-                origem: 'analises', 
-                ...doc.data(),
-                videoPrincipal: doc.data().videoPrincipal?.replace("watch?v=", "embed/") || ""
-            }))
-            .sort((a, b) => {
-                const dataA = a.lastUpdate ? new Date(a.lastUpdate).getTime() : 0;
-                const dataB = b.lastUpdate ? new Date(b.lastUpdate).getTime() : 0;
-                return dataB - dataA;
-            });
-        
-        atualizarInterface();
-    });
-}
+        return `
+        <article class="destaque-secao" id="artigo-${news.id}" style="--tema-cor: ${news.cor || '#8A2BE2'}">
+          <div class="destaque-padding">
+            <div class="destaque-top-meta">
+                <div class="destaque-categoria" onclick="window.analises.abrirNoModalGlobal('${news.id}')">
+                    <i class="fa-solid fa-hashtag"></i> ${news.categoria || 'ANÁLISE'}
+                </div>
+                <div class="destaque-data-badge">
+                    <i class="fa-regular fa-clock"></i> ${news.tempoLeitura || '5 min'}
+                </div>
+            </div>
+            
+            <div class="destaque-header">
+              <h2 class="destaque-titulo" onclick="window.analises.abrirNoModalGlobal('${news.id}')">
+                ${news.titulo}
+              </h2>
+            </div>
 
-// Inicialização total
-criarPainelLogs();
-window.logVisual("Iniciando...");
-carregarBlocoEditorial();
-iniciarSyncNoticias();
+            <p class="destaque-resumo">${news.resumo || ''}</p>
+            
+            <div class="destaque-info-grid">
+              ${criarFichaHtml(news.ficha)}
+            </div>
+          </div>
+
+          <div class="destaque-media">
+            <iframe 
+                id="player-${news.id}" 
+                src="${limparEspacos(news.videoPrincipal)}" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowfullscreen>
+            </iframe>
+          </div>
+
+          <div class="premium-actions-bar">
+            <button class="btn-premium-icon" onclick="window.analises.compartilharNoticia('${news.titulo.replace(/'/g, "\\'")}', '${shareUrl}')">
+              <i class="fa-solid fa-share-nodes"></i> 
+              <span>Compartilhar</span>
+            </button>
+            <div class="stats-group">
+                <i class="fa-solid fa-chart-line"></i>
+                <span class="stats-num">${viewCount} visualizações</span>
+            </div>
+          </div>
+
+          <div class="carrossel-temas">
+            <div class="carrossel-header">
+                <i class="fa-solid fa-film"></i>
+                <span class="temas-label">Vídeos Relacionados</span>
+            </div>
+            <div class="temas-scroll-wrapper">
+                <div class="temas-container">
+                    ${criarRelacionadosHtml(news.id, news.relacionados)}
+                </div>
+            </div>
+          </div>
+        </article>
+      `;
+    }).join('');
+}
