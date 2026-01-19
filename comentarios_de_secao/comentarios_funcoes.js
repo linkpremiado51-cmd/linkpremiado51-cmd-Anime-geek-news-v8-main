@@ -10,25 +10,39 @@ import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/fir
  */
 export function toggleComentarios(abrir = true, idConteudo = null) {
     const modal = document.getElementById('modal-comentarios-global');
-    if (!modal) return;
+    if (!modal) {
+        console.warn("Funções: Modal de comentários não encontrado no DOM.");
+        return;
+    }
 
     if (abrir) {
-        modal.style.display = 'flex';
-        // Delay para animação CSS
-        setTimeout(() => modal.classList.add('active'), 10);
-        document.body.style.overflow = 'hidden';
-
+        // Garante que o ID da notícia está vinculado ao modal
         if (idConteudo) {
-            // Armazena o ID atual no modal para sabermos onde salvar o comentário depois
             modal.dataset.idAtual = idConteudo;
-            if (window.logVisual) window.logVisual(`Discussão ativa: ${idConteudo}`);
         }
+
+        modal.style.display = 'flex';
+        
+        // Força o navegador a processar o display:flex antes da animação
+        void modal.offsetWidth; 
+
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden'; // Trava o scroll do fundo
+
+        if (window.logVisual) window.logVisual(`Interface: Modal aberto para ${idConteudo}`);
     } else {
         modal.classList.remove('active');
+        
+        // Aguarda a transição do CSS (300ms) para esconder o display
         setTimeout(() => {
-            modal.style.display = 'none';
+            if (!modal.classList.contains('active')) {
+                modal.style.display = 'none';
+                modal.dataset.idAtual = ""; // Limpa o ID por segurança
+            }
         }, 300);
+        
         document.body.style.overflow = 'auto';
+        if (window.logVisual) window.logVisual("Interface: Modal fechado.");
     }
 }
 
@@ -36,22 +50,22 @@ export function toggleComentarios(abrir = true, idConteudo = null) {
  * Envia um novo comentário para o Firestore
  */
 export async function enviarNovoComentario(db, idConteudo, texto) {
-    if (!texto.trim()) return;
+    if (!texto || !texto.trim()) return;
 
     if (window.logVisual) window.logVisual("Enviando comentário...");
 
     try {
         const colRef = collection(db, "analises", idConteudo, "comentarios");
         await addDoc(colRef, {
-            nome: "Usuário Geek", // Aqui depois podemos integrar com sistema de login
+            nome: "Usuário Geek", // Futuro: integrar com Auth
             texto: texto.trim(),
             data: serverTimestamp()
         });
 
-        if (window.logVisual) window.logVisual("Comentário enviado!");
+        if (window.logVisual) window.logVisual("Sucesso ao comentar!");
         limparCampoInput();
     } catch (error) {
-        if (window.logVisual) window.logVisual("Erro ao enviar mensagem.");
+        if (window.logVisual) window.logVisual("Erro ao salvar comentário.");
         console.error("Erro Firebase:", error);
     }
 }
