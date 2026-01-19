@@ -3,6 +3,8 @@
  * Lógica de controle e persistência de comentários
  */
 
+import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
 /**
  * Controla a exibição do modal de comentários
  */
@@ -17,8 +19,9 @@ export function toggleComentarios(abrir = true, idConteudo = null) {
         document.body.style.overflow = 'hidden';
 
         if (idConteudo) {
-            console.log(`[Módulo Comentários] Carregando discussão para: ${idConteudo}`);
-            // Aqui entra a chamada futura para o Firebase
+            // Armazena o ID atual no modal para sabermos onde salvar o comentário depois
+            modal.dataset.idAtual = idConteudo;
+            if (window.logVisual) window.logVisual(`Discussão ativa: ${idConteudo}`);
         }
     } else {
         modal.classList.remove('active');
@@ -26,6 +29,30 @@ export function toggleComentarios(abrir = true, idConteudo = null) {
             modal.style.display = 'none';
         }, 300);
         document.body.style.overflow = 'auto';
+    }
+}
+
+/**
+ * Envia um novo comentário para o Firestore
+ */
+export async function enviarNovoComentario(db, idConteudo, texto) {
+    if (!texto.trim()) return;
+
+    if (window.logVisual) window.logVisual("Enviando comentário...");
+
+    try {
+        const colRef = collection(db, "analises", idConteudo, "comentarios");
+        await addDoc(colRef, {
+            nome: "Usuário Geek", // Aqui depois podemos integrar com sistema de login
+            texto: texto.trim(),
+            data: serverTimestamp()
+        });
+
+        if (window.logVisual) window.logVisual("Comentário enviado!");
+        limparCampoInput();
+    } catch (error) {
+        if (window.logVisual) window.logVisual("Erro ao enviar mensagem.");
+        console.error("Erro Firebase:", error);
     }
 }
 
