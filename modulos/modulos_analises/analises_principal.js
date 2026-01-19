@@ -1,7 +1,6 @@
 /**
  * ARQUIVO: modulos/modulos_analises/analises_principal.js
- * Sistema com Logs Visuais e Botão de Paginação Forçado
- * Versão Integrada - Corrigindo funções de interface ausentes para evitar travamentos
+ * Sistema com Logs Visuais e Integração de Comentários
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -9,7 +8,7 @@ import { getFirestore, collection, onSnapshot, doc, getDoc } from "https://www.g
 import * as Funcoes from './analises_funcoes.js';
 import * as Interface from './analises_interface.js';
 
-// --- SISTEMA DE LOGS VISUAIS PARA CELULAR ---
+// --- 1. SISTEMA DE LOGS (Iniciado primeiro para ser global) ---
 function criarPainelLogs() {
     if (document.getElementById('debug-mobile')) return;
     const panel = document.createElement('div');
@@ -27,6 +26,12 @@ window.logVisual = function(msg) {
     }
     console.log(msg);
 };
+criarPainelLogs();
+window.logVisual("Logs Iniciados...");
+
+// --- 2. IMPORTAÇÃO DO MÓDULO DE COMENTÁRIOS ---
+// Agora que o logVisual existe, podemos carregar os comentários com segurança
+import '../../comentarios_de_secao/comentarios_principal.js';
 // --------------------------------------------
 
 const firebaseConfig = {
@@ -51,7 +56,6 @@ window.analises = {
         const noticia = todasAsAnalisesLocais.find(n => n.id === id);
         if (noticia && window.abrirModalNoticia) window.abrirModalNoticia(noticia);
     },
-    // Adicionado para suportar o carrossel de vídeos na interface
     trocarVideo: (iframeId, videoId) => {
         const iframe = document.getElementById(iframeId);
         if (iframe) {
@@ -59,7 +63,6 @@ window.analises = {
             window.logVisual("Vídeo trocado.");
         }
     },
-    // Adicionado para suportar o botão de compartilhamento na interface
     compartilharNoticia: (titulo, url) => {
         if (navigator.share) {
             navigator.share({ title: titulo, url: url });
@@ -74,9 +77,8 @@ window.analises = {
     },
     carregarMaisNovo: () => {
         const totalNoBanco = todasAsAnalisesLocais.length;
-        
         if (noticiasExibidasCount >= totalNoBanco) {
-            window.logVisual(`Fim da lista! (Mostrando ${totalNoBanco} de ${totalNoBanco})`);
+            window.logVisual(`Fim da lista.`);
         } else {
             noticiasExibidasCount += 5;
             window.logVisual(`Expandindo limite para ${noticiasExibidasCount}...`);
@@ -85,7 +87,6 @@ window.analises = {
     }
 };
 
-// Delegamento de Eventos (Blindagem)
 document.addEventListener('click', (e) => {
     const target = e.target.closest('#btn-carregar-mais');
     if (target) {
@@ -110,25 +111,16 @@ async function carregarBlocoEditorial() {
     }
 }
 
-/**
- * Tenta encontrar o container e força a injeção do botão
- */
 function forcarBotao(tentativas = 0) {
     const btnContainer = document.getElementById('novo-pagination-modulo');
-
     if (btnContainer) {
-        window.logVisual("Container achado. Injetando botão...");
         Interface.renderizarBotaoPaginacao();
     } else if (tentativas < 10) {
-        window.logVisual(`Aguardando container... (${tentativas + 1}/10)`);
         setTimeout(() => forcarBotao(tentativas + 1), 1000);
-    } else {
-        window.logVisual("ERRO: Container não apareceu.");
     }
 }
 
 function atualizarInterface() {
-    window.logVisual(`Renderizando até ${noticiasExibidasCount} itens...`);
     Interface.renderizarNoticias(todasAsAnalisesLocais, noticiasExibidasCount);
     forcarBotao();
 }
@@ -155,7 +147,6 @@ function iniciarSyncNoticias() {
 }
 
 // Inicialização
-criarPainelLogs();
-window.logVisual("Sistema Iniciado.");
+window.logVisual("Sistema Principal OK.");
 carregarBlocoEditorial();
 iniciarSyncNoticias();
